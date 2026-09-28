@@ -82,11 +82,22 @@
         <div id="ad-footer-small"></div>
       </div>
     </div>
-    <!-- reCAPTCHA disabled for offline mode - loaded conditionally if needed -->
+    <!-- reCAPTCHA disabled for offline mode -->
     <!-- <script src="https://www.google.com/recaptcha/api.js?render=explicit" async defer></script> -->
 
     <link rel="stylesheet" href="" id="globalFunBoxTheme" type="text/css" />
-    <script type="module" src="ts/index.ts"></script>
+    <!-- OFFLINE-MODE: Dynamic entry point selection based on build mode -->
+    <script type="module">
+      // Check if this is an offline build
+      const isOffline = "VITE_OFFLINE_MODE" === "true";
+      const entryPoint = isOffline ? "ts/index-offline.ts" : "ts/index.ts";
+      
+      // Dynamically load the appropriate entry point
+      const script = document.createElement("script");
+      script.type = "module";
+      script.src = entryPoint;
+      document.currentScript.parentNode.insertBefore(script, document.currentScript);
+    </script>
     <mount data-component="devtools"></mount>
   </body>
 </html>

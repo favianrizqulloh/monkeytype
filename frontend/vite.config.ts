@@ -1,29 +1,22 @@
-import {
-  defineConfig,
-  loadEnv,
-  UserConfig,
-  BuildEnvironmentOptions,
-  PluginOption,
-  CSSOptions,
-} from "vite";
+import {defineConfig, loadEnv, UserConfig, BuildEnvironmentOptions, PluginOption, CSSOptions} from "vite";
 import path from "node:path";
 import injectHTML from "vite-plugin-html-inject";
 import childProcess from "child_process";
 import autoprefixer from "autoprefixer";
-import { Fonts } from "./src/ts/constants/fonts";
-import { fontawesomeSubset } from "./vite-plugins/fontawesome-subset";
-import { fontPreview } from "./vite-plugins/font-preview";
-import { envConfig } from "./vite-plugins/env-config";
-import { languageHashes } from "./vite-plugins/language-hashes";
-import { minifyJson } from "./vite-plugins/minify-json";
-import { versionFile } from "./vite-plugins/version-file";
-import { oxlintChecker } from "./vite-plugins/oxlint-checker";
-import { injectPreload } from "./vite-plugins/inject-preload";
+import {Fonts} from "./src/ts/constants/fonts";
+import {fontawesomeSubset} from "./vite-plugins/fontawesome-subset";
+import {fontPreview} from "./vite-plugins/font-preview";
+import {envConfig} from "./vite-plugins/env-config";
+import {languageHashes} from "./vite-plugins/language-hashes";
+import {minifyJson} from "./vite-plugins/minify-json";
+import {versionFile} from "./vite-plugins/version-file";
+import {oxlintChecker} from "./vite-plugins/oxlint-checker";
+import {injectPreload} from "./vite-plugins/inject-preload";
 import Inspect from "vite-plugin-inspect";
-import { ViteMinifyPlugin } from "vite-plugin-minify";
-import { VitePWA } from "vite-plugin-pwa";
-import { sentryVitePlugin } from "@sentry/vite-plugin";
-import { KnownFontName } from "@monkeytype/schemas/fonts";
+import {ViteMinifyPlugin} from "vite-plugin-minify";
+import {VitePWA} from "vite-plugin-pwa";
+import {sentryVitePlugin} from "@sentry/vite-plugin";
+import {KnownFontName} from "@monkeytype/schemas/fonts";
 import solidPlugin from "vite-plugin-solid";
 import devtools from "solid-devtools/vite";
 import tailwindcss from "@tailwindcss/vite";
@@ -37,7 +30,7 @@ function getFontsConfig(): string {
       return `"${name.replaceAll("_", " ")}": (
         "src": "${config.fileName}",
         "weight": ${config.weight ?? 400},
-        ),`;
+      ),`;
     })
     .join("\n")}\n`;
 }
@@ -78,21 +71,16 @@ function getClientVersion(isDevelopment: boolean): string {
   }
 }
 
-/** Enable for font awesome v6 */
-/*
-function sassList(values) {
-  return values.map((it) => `"${it}"`).join(",");
-}
-*/
-
 function getPlugins({
   isDevelopment,
   env,
   useSentry,
+  isOffline,
 }: {
   isDevelopment: boolean;
   env: Record<string, string>;
   useSentry: boolean;
+  isOffline: boolean;
 }): PluginOption[] {
   const clientVersion = getClientVersion(isDevelopment);
 
@@ -101,7 +89,6 @@ function getPlugins({
     languageHashes({ skip: isDevelopment }),
     injectHTML() as PluginOption,
     tailwindcss(),
-
     solidPlugin(),
     devtools({
       autoname: true,
@@ -122,7 +109,8 @@ function getPlugins({
     fontawesomeSubset(),
     versionFile({ clientVersion }),
     ViteMinifyPlugin(),
-    VitePWA({
+    // OFFLINE: Skip PWA plugin for offline builds (Service Workers don't work from file:// protocol)
+    !isOffline && VitePWA({
       // injectRegister: "networkfirst",
       injectRegister: null,
       registerType: "autoUpdate",
@@ -166,7 +154,6 @@ function getPlugins({
           },
           {
             urlPattern: (options) => {
-              //disable caching for version.json
               return options.url.pathname === "/version.json";
             },
             handler: "NetworkOnly",
@@ -175,7 +162,8 @@ function getPlugins({
         ],
       },
     }),
-    useSentry
+    // OFFLINE: Skip Sentry plugin for offline builds (no telemetry)
+    !isOffline && useSentry
       ? sentryVitePlugin({
           authToken: env["SENTRY_AUTH_TOKEN"],
           org: "monkeytype",
@@ -204,7 +192,7 @@ function getBuildOptions({
     sourcemap: enableSourceMaps,
     emptyOutDir: true,
     outDir: "../dist",
-    assetsInlineLimit: 0, //dont inline small files as data
+    assetsInlineLimit: 0,
     rolldownOptions: {
       input: {
         monkeytype: path.resolve(__dirname, "src/index.html"),
@@ -232,7 +220,6 @@ function getBuildOptions({
           ) {
             return `webfonts/[name]-[hash].${extType}`;
           }
-          // oxlint-disable-next-line no-deprecated
           if (assetInfo.name === "misc.css") {
             return `${extType}/vendor.[hash][extname]`;
           }
@@ -292,17 +279,6 @@ function getCssOptions({
       scss: {
         additionalData(source: string, fp: string) {
           if (isDevelopment || fp.endsWith("index.scss")) {
-            /** Enable for font awesome v6 */
-            /*
-                const fontawesomeClasses = getFontawesomeConfig();
-
-                //inject variables into sass context
-                $fontawesomeBrands: ${sassList(
-                  fontawesomeClasses.brands
-                )};             
-                $fontawesomeSolid: ${sassList(fontawesomeClasses.solid)};
-              */
-
             const bypassFonts = isDevelopment
               ? `
                 $fontAwesomeOverride:"@fortawesome/fontawesome-free/webfonts";
@@ -329,9 +305,11 @@ function getCssOptions({
 export default defineConfig(({ mode }): UserConfig => {
   const env = loadEnv(mode, process.cwd(), "");
   const useSentry = env["SENTRY"] !== undefined;
-  const isDevelopment = mode !== "production";
+  const isDevelopment = mode !== "production" && mode !== "offline";
+  const isOffline = mode === "offline";
 
-  if (!isDevelopment) {
+  // OFFLINE: Skip reCAPTCHA validation for offline builds
+  if (!isDevelopment && !isOffline) {
     if (env["RECAPTCHA_SITE_KEY"] === undefined) {
       throw new Error(`${mode}: RECAPTCHA_SITE_KEY is not defined`);
     }
@@ -340,17 +318,25 @@ export default defineConfig(({ mode }): UserConfig => {
     }
   }
 
+  if (isOffline) {
+    console.info(
+      "\n🔴 OFFLINE MODE BUILD DETECTED\n" +
+      "  - No external resources will be loaded\n" +
+      "  - All data stored locally\n" +
+      "  - Firebase and Sentry disabled\n" +
+      "  - Base path set to ./\n"
+    );
+  }
+
   return {
-    plugins: getPlugins({ isDevelopment, useSentry: useSentry, env }),
-    build: getBuildOptions({ enableSourceMaps: useSentry }),
+    plugins: getPlugins({ isDevelopment, useSentry: useSentry && !isOffline, env, isOffline }),
+    build: getBuildOptions({ enableSourceMaps: useSentry && !isOffline }),
     css: getCssOptions({ isDevelopment }),
     server: {
       open: env["SERVER_OPEN"] !== "false",
       port: 3000,
       host: env["BACKEND_URL"] !== undefined,
       watch: {
-        //we rebuild the whole contracts package when a file changes
-        //so we only want to watch one file
         ignored: [/.*\/packages\/contracts\/dist\/(?!configs).*/],
       },
     },
@@ -369,6 +355,12 @@ export default defineConfig(({ mode }): UserConfig => {
     publicDir: "../static",
     optimizeDeps: {
       exclude: ["@fortawesome/fontawesome-free"],
+    },
+    // OFFLINE: CRITICAL - Use relative paths for file:// protocol
+    base: isOffline ? "./" : "/",
+    define: {
+      // Pass offline mode flag to code at compile time
+      "import.meta.env.VITE_OFFLINE_MODE": isOffline ? "'true'" : "'false'",
     },
   };
 });
