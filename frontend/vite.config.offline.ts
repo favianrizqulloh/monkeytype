@@ -1,0 +1,296 @@
+/**
+ * Vite Configuration for Offline Portable Build
+ * This config ensures:
+ * - No external resources are loaded
+ * - All assets use relative paths
+ * - No network plugins are activated
+ * - Service workers are disabled
+ * - No telemetry is sent
+ */
+
+import {
+  defineConfig,
+  loadEnv,
+  UserConfig,
+  BuildEnvironmentOptions,
+  PluginOption,
+  CSSOptions,
+} from "vite";
+import path from "node:path";
+import injectHTML from "vite-plugin-html-inject";
+import childProcess from "child_process";
+import autoprefixer from "autoprefixer";
+import { Fonts } from "./src/ts/constants/fonts";
+import { fontawesomeSubset } from "./vite-plugins/fontawesome-subset";
+import { fontPreview } from "./vite-plugins/font-preview";
+import { envConfig } from "./vite-plugins/env-config";
+import { languageHashes } from "./vite-plugins/language-hashes";
+import { minifyJson } from "./vite-plugins/minify-json";
+import { versionFile } from "./vite-plugins/version-file";
+import { oxlintChecker } from "./vite-plugins/oxlint-checker";
+import { injectPreload } from "./vite-plugins/inject-preload";
+import Inspect from "vite-plugin-inspect";
+import { ViteMinifyPlugin } from "vite-plugin-minify";
+import { KnownFontName } from "@monkeytype/schemas/fonts";
+import solidPlugin from "vite-plugin-solid";
+import devtools from "solid-devtools/vite";
+import tailwindcss from "@tailwindcss/vite";
+
+function getFontsConfig(): string {
+  return `\n${Object.keys(Fonts)
+    .sort()
+    .map((name: string) => {
+      const config = Fonts[name as KnownFontName];
+      if (config.systemFont === true) return "";
+      return `"${name.replaceAll("_", " ")}": (
+        "src": "${config.fileName}",
+        "weight": ${config.weight ?? 400},
+      ),`;
+    })
+    .join("\n")}\n`;
+}
+
+function pad(
+  numbers: number[],
+  maxLength: number,
+  fillString: string,
+): string[] {
+  return numbers.map((number) =>
+    number.toString().padStart(maxLength, fillString),
+  );
+}
+
+function getClientVersion(isDevelopment: boolean): string {
+  if (isDevelopment) {
+    return "DEVELOPMENT_CLIENT";
+  }
+  const date = new Date();
+  const versionPrefix = pad(
+    [date.getFullYear(), date.getMonth() + 1, date.getDate()],
+    2,
+    "0",
+  ).join(".");
+  const versionSuffix = pad([date.getHours(), date.getMinutes()], 2, "0").join(
+    ".",
+  );
+  const version = [versionPrefix, versionSuffix].join("_");
+
+  try {
+    const commitHash = childProcess
+      .execSync("git rev-parse --short HEAD")
+      .toString();
+
+    return `${version}_${commitHash}`.replace(/\n/g, "");
+  } catch (e) {
+    return `${version}_unknown-hash`;
+  }
+}
+
+function getPlugins({
+  isDevelopment,
+  env,
+}: {
+  isDevelopment: boolean;
+  env: Record<string, string>;
+}): PluginOption[] {
+  const clientVersion = getClientVersion(isDevelopment);
+
+  const plugins: PluginOption[] = [
+    envConfig({ isDevelopment, clientVersion, env }),
+    languageHashes({ skip: isDevelopment }),
+    injectHTML() as PluginOption,
+    tailwindcss(),
+    solidPlugin(),
+    devtools({
+      autoname: true,
+    }),
+  ];
+
+  const devPlugins: PluginOption[] = [
+    oxlintChecker({
+      debounceDelay: 125,
+      typeAware: true,
+      overlay: isDevelopment,
+    }),
+    Inspect(),
+  ];
+
+  const prodPlugins: PluginOption[] = [
+    fontPreview(),
+    fontawesomeSubset(),
+    versionFile({ clientVersion }),
+    ViteMinifyPlugin(),
+    // OFFLINE: NO PWA - Service Workers don't work from file:// protocol
+    // OFFLINE: NO Sentry Plugin - No telemetry in offline mode
+    // OFFLINE: NO runtime caching
+    injectPreload(),
+    minifyJson(),
+  ];
+
+  return [...plugins, ...(isDevelopment ? devPlugins : prodPlugins)].filter(
+    (it) => it !== null,
+  );
+}
+
+function getBuildOptions({
+  enableSourceMaps,
+}: {
+  enableSourceMaps: boolean;
+}): BuildEnvironmentOptions {
+  return {
+    sourcemap: enableSourceMaps,
+    emptyOutDir: true,
+    outDir: "../dist",
+    assetsInlineLimit: 0, //dont inline small files as data
+    rolldownOptions: {
+      input: {
+        monkeytype: path.resolve(__dirname, "src/index.html"),
+        email: path.resolve(__dirname, "src/email-handler.html"),
+        privacy: path.resolve(__dirname, "src/privacy-policy.html"),
+        security: path.resolve(__dirname, "src/security-policy.html"),
+        terms: path.resolve(__dirname, "src/terms-of-service.html"),
+        404: path.resolve(__dirname, "src/404.html"),
+      },
+      output: {
+        assetFileNames: (assetInfo) => {
+          let extType = (assetInfo.names[0] as string).split(".").at(1);
+
+          if (extType === undefined) {
+            throw new Error(
+              `Could not determine asset type for asset: ${assetInfo.names[0]}`,
+            );
+          }
+
+          if (/png|jpe?g|svg|gif|tiff|bmp|ico/i.test(extType)) {
+            extType = "images";
+          }
+          if (
+            /\.(woff|woff2|eot|ttf|otf)$/.test(assetInfo.names[0] as string)
+          ) {
+            return `webfonts/[name]-[hash].${extType}`;
+          }
+          // oxlint-disable-next-line no-deprecated
+          if (assetInfo.name === "misc.css") {
+            return `${extType}/vendor.[hash][extname]`;
+          }
+
+          return `${extType}/[name].[hash][extname]`;
+        },
+        chunkFileNames: "js/[name].[hash].js",
+        entryFileNames: "js/[name].[hash].js",
+        codeSplitting: {
+          groups: [
+            {
+              name: "vendor-firebase",
+              test: /node_modules\/@firebase\//,
+            },
+            {
+              name: "vendor-tanstack",
+              test: /node_modules\/@tanstack\//,
+            },
+            {
+              name: "monkeytype-packages",
+              test: /monkeytype\/packages\//,
+            },
+            {
+              name: "vendor-chart",
+              test: /node_modules\/chart/,
+            },
+            {
+              name: "monkeytype-utils",
+              test: /src\/ts\/utils\//,
+            },
+            {
+              name: "vendor",
+              test: /node_modules\//,
+            },
+          ],
+        },
+      },
+    },
+  };
+}
+
+function getCssOptions({
+  isDevelopment,
+}: {
+  isDevelopment: boolean;
+}): CSSOptions {
+  return {
+    devSourcemap: true,
+    postcss: {
+      plugins: [autoprefixer({})],
+    },
+    preprocessorOptions: {
+      scss: {
+        additionalData(source: string, fp: string) {
+          if (isDevelopment || fp.endsWith("index.scss")) {
+            const bypassFonts = isDevelopment
+              ? `
+                $fontAwesomeOverride:"@fortawesome/fontawesome-free/webfonts";
+                $previewFontsPath:"webfonts";`
+              : "";
+            const fonts = `
+              ${bypassFonts}
+              $fonts: (${getFontsConfig()});
+              `;
+            return `
+              //inject variables into sass context
+              ${fonts}
+            
+              ${source}`;
+          } else {
+            return source;
+          }
+        },
+      },
+    },
+  };
+}
+
+export default defineConfig(({ mode }): UserConfig => {
+  const env = loadEnv(mode, process.cwd(), "");
+  const isDevelopment = mode !== "production";
+  const isOffline = mode === "offline";
+
+  // OFFLINE: Skip reCAPTCHA validation for offline builds
+  if (!isDevelopment && !isOffline) {
+    if (env["RECAPTCHA_SITE_KEY"] === undefined) {
+      throw new Error(`${mode}: RECAPTCHA_SITE_KEY is not defined`);
+    }
+  }
+
+  return {
+    plugins: getPlugins({ isDevelopment, env }),
+    build: getBuildOptions({ enableSourceMaps: false }),
+    css: getCssOptions({ isDevelopment }),
+    server: {
+      open: env["SERVER_OPEN"] !== "false",
+      port: 3000,
+      host: env["BACKEND_URL"] !== undefined,
+      watch: {
+        ignored: [/.*\/packages\/contracts\/dist\/(?!configs).*/],
+      },
+    },
+    resolve: {
+      alias: [
+        {
+          find: /\/constants\/firebase-config$/,
+          replacement: "/constants/firebase-config-live",
+        },
+      ],
+    },
+    clearScreen: false,
+    root: "src",
+    publicDir: "../static",
+    optimizeDeps: {
+      exclude: ["@fortawesome/fontawesome-free"],
+    },
+    // OFFLINE: CRITICAL - Use relative paths for file:// protocol
+    base: isOffline ? "./" : "/",
+    define: {
+      // Define offline build flag at compile time
+      __OFFLINE_BUILD__: isOffline ? "true" : "false",
+    },
+  };
+});
