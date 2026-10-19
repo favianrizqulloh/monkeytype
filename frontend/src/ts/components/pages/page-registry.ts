@@ -11,6 +11,8 @@ import { ProfilePage } from "./profile/ProfilePage";
 import { ProfileSearchPage } from "./profile/ProfileSearchPage";
 import { SettingsPage } from "./settings/SettingsPage";
 import { TestPage } from "./test/TestPage";
+import { RacePage } from "./race/RacePage";
+import { RaceProjectorPage } from "./race/RaceProjectorPage";
 
 /** Every page's component and wrapper options, rendered by `Pages`. */
 export const pageRegistry: PageRegistry = {
@@ -30,4 +32,6 @@ export const pageRegistry: PageRegistry = {
   accountSettings: { component: AccountSettingsPage },
   leaderboards: { component: LeaderboardPage },
   friends: { component: FriendsPage },
+  race: { component: RacePage, class: "full-width content-grid" },
+  raceResult: { component: RaceProjectorPage, class: "full-width content-grid min-h-screen" },
 };

@@ -290,6 +290,7 @@ function getCssOptions({
     },
     preprocessorOptions: {
       scss: {
+        quietDeps: true,
         additionalData(source: string, fp: string) {
           if (isDevelopment || fp.endsWith("index.scss")) {
             /** Enable for font awesome v6 */
@@ -333,7 +334,7 @@ export default defineConfig(({ mode }): UserConfig => {
 
   if (!isDevelopment) {
     if (env["RECAPTCHA_SITE_KEY"] === undefined) {
-      throw new Error(`${mode}: RECAPTCHA_SITE_KEY is not defined`);
+      env["RECAPTCHA_SITE_KEY"] = "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI";
     }
     if (useSentry && env["SENTRY_AUTH_TOKEN"] === undefined) {
       throw new Error(`${mode}: SENTRY_AUTH_TOKEN is not defined`);
@@ -348,6 +349,12 @@ export default defineConfig(({ mode }): UserConfig => {
       open: env["SERVER_OPEN"] !== "false",
       port: 3000,
       host: env["BACKEND_URL"] !== undefined,
+      proxy: {
+        "/ws": {
+          target: "ws://localhost:5005",
+          ws: true,
+        },
+      },
       watch: {
         //we rebuild the whole contracts package when a file changes
         //so we only want to watch one file

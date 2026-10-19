@@ -143,6 +143,8 @@ const pages = {
       readLeaderboardGetParameters(options.urlParams);
     },
   }),
+  race: page("race"),
+  raceResult: page("raceResult"),
 };
 
 function updateOpenGraphUrl(): void {

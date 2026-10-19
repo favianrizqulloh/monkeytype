@@ -154,6 +154,45 @@ const routes: Route[] = [
       await PageController.change("friends", options);
     },
   },
+  {
+    path: "/race",
+    load: async (_params, options) => {
+      await PageController.change("race", options);
+    },
+  },
+  {
+    path: "/race/:sessionId",
+    load: async (params, options) => {
+      await PageController.change("race", {
+        ...options,
+        params: {
+          sessionId: params["sessionId"] as string,
+        },
+      });
+    },
+  },
+  {
+    path: "/result:sessionId",
+    load: async (params, options) => {
+      await PageController.change("raceResult", {
+        ...options,
+        params: {
+          sessionId: params["sessionId"] as string,
+        },
+      });
+    },
+  },
+  {
+    path: "/result/:sessionId",
+    load: async (params, options) => {
+      await PageController.change("raceResult", {
+        ...options,
+        params: {
+          sessionId: params["sessionId"] as string,
+        },
+      });
+    },
+  },
 ];
 
 export async function navigate(

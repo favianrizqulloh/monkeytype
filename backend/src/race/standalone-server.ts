@@ -1,0 +1,33 @@
+import http from "http";
+import express from "express";
+import { initRaceWebSocket } from "./race-ws";
+
+import cors from "cors";
+import { BASE_CONFIGURATION } from "../constants/base-configuration";
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok", app: "TypingTest Race Server" });
+});
+
+app.get("/configuration", (_req, res) => {
+  res.json({
+    message: "Configuration retrieved",
+    data: BASE_CONFIGURATION,
+  });
+});
+
+const server = http.createServer(app);
+initRaceWebSocket(server);
+
+const PORT = parseInt(process.env["PORT"] ?? "5005", 10);
+
+server.listen(PORT, () => {
+  console.log(`\n==================================================`);
+  console.log(`  TypingTest WebSocket Server aktif di port ${PORT}`);
+  console.log(`  Path WebSocket: ws://localhost:${PORT}/ws/race`);
+  console.log(`==================================================\n`);
+});

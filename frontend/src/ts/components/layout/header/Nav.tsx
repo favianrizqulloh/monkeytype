@@ -100,6 +100,23 @@ export function Nav(): JSXElement {
       <Button
         variant="text"
         fa={{
+          icon: "fa-flag-checkered",
+          fixedWidth: true,
+        }}
+        router-link
+        href="/race"
+        class={buttonClass()}
+        balloon={{
+          text: "TypingTest Race",
+          position: "down",
+        }}
+        dataset={{
+          "data-nav-item": "race",
+        }}
+      />
+      <Button
+        variant="text"
+        fa={{
           icon: "fa-crown",
           fixedWidth: true,
         }}
