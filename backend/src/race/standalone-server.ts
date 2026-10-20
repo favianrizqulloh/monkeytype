@@ -25,7 +25,7 @@ initRaceWebSocket(server);
 
 const PORT = parseInt(process.env["PORT"] ?? "5005", 10);
 
-server.listen(PORT, () => {
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`\n==================================================`);
   console.log(`  TypingTest WebSocket Server aktif di port ${PORT}`);
   console.log(`  Path WebSocket: ws://localhost:${PORT}/ws/race`);

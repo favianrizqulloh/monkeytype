@@ -15,7 +15,7 @@
     "ts-check": "tsc --noEmit",
     "build": "npm run madge && vite build",
     "madge": " madge --circular --extensions ts ./src",
-    "start": "vite preview --port 3000",
+    "start": "vite preview --port 3000 --host 0.0.0.0",
     "dev": "vite dev",
     "test": "vitest run",
     "test-coverage": "vitest run --coverage",

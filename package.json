@@ -32,6 +32,7 @@
     "dev-fe": "turbo run dev --force --filter @monkeytype/frontend",
     "dev-pkg": "turbo run dev --force --filter=\"./packages/*\"",
     "race-server": "pnpm --filter @monkeytype/backend run race-server",
+    "preview-frontend": "pnpm --filter @monkeytype/frontend run start",
     "storybook": "turbo run storybook --force",
     "start": "turbo run start",
     "start-be": "turbo run start --filter @monkeytype/backend",
