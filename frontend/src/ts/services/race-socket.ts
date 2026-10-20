@@ -12,6 +12,7 @@ import {
   setPassageText,
   setRaceStatus,
   setRemainingSeconds,
+  setSessionDuration,
   updateParticipantProgress,
 } from "../states/race";
 
@@ -67,12 +68,13 @@ function handleServerMessage(msg: Record<string, unknown>): void {
       setRaceStatus(session.status);
       setPassageText(session.text);
       setPassageAuthor(session.author ?? "");
-      setRemainingSeconds(session.durationSeconds ?? 60);
+      setRemainingSeconds(session.durationSeconds ?? 180);
+      setSessionDuration(session.durationSeconds ?? 180);
       setParticipants(session.participants);
 
       const finishedParticipants = session.participants
-        .filter((p) => !p.isTeacher && p.finished)
-        .sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99));
+        .filter((p) => !p.isTeacher && (p.finished || (p.bestWpm ?? 0) > 0))
+        .sort((a, b) => (b.bestWpm ?? 0) - (a.bestWpm ?? 0));
       setLeaderboard(finishedParticipants);
       break;
     }
@@ -100,8 +102,9 @@ function handleServerMessage(msg: Record<string, unknown>): void {
       setRaceStatus("racing");
       setPassageText(msg["text"] as string);
       setPassageAuthor((msg["author"] as string) ?? "");
-      const duration = (msg["durationSeconds"] as number) ?? 60;
+      const duration = (msg["durationSeconds"] as number) ?? 180;
       setRemainingSeconds(duration);
+      setSessionDuration(duration);
 
       // Start local race timer decrement
       clearInterval(raceTimerInterval);
@@ -171,7 +174,9 @@ function handleServerMessage(msg: Record<string, unknown>): void {
       setRaceStatus("lobby");
       setPassageText(session.text);
       setPassageAuthor(session.author ?? "");
-      setRemainingSeconds(session.durationSeconds ?? 60);
+      const duration = session.durationSeconds ?? 180;
+      setRemainingSeconds(duration);
+      setSessionDuration(duration);
       setParticipants(session.participants);
       setLeaderboard([]);
       break;
@@ -183,6 +188,7 @@ export function joinRoom(
   sessionId: string,
   name: string,
   isTeacher: boolean,
+  durationSeconds?: number,
 ): void {
   const ws = connectRaceSocket();
   const send = (): void => {
@@ -192,6 +198,7 @@ export function joinRoom(
         sessionId,
         name,
         isTeacher,
+        durationSeconds,
       }),
     );
   };
@@ -237,24 +244,70 @@ export function sendFinish(
   }
 }
 
-export function startRace(): void {
+export function sendNextAttempt(): void {
   if (socket && socket.readyState === WebSocket.OPEN) {
     socket.send(
       JSON.stringify({
-        action: "start_race",
+        action: "next_attempt",
       }),
     );
   }
 }
 
-export function resetRace(customText?: string): void {
+export function startRace(durationSeconds?: number): void {
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(
+      JSON.stringify({
+        action: "start_race",
+        durationSeconds,
+      }),
+    );
+  }
+}
+
+export function resetRace(customText?: string, durationSeconds?: number): void {
   if (socket && socket.readyState === WebSocket.OPEN) {
     socket.send(
       JSON.stringify({
         action: "reset_race",
         customText,
+        durationSeconds,
       }),
     );
+  }
+}
+
+export async function copyToClipboard(text: string): Promise<boolean> {
+  if (
+    typeof navigator?.clipboard?.writeText === "function" &&
+    window.isSecureContext
+  ) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Fallback below
+    }
+  }
+
+  // Fallback for HTTP LAN environments / older browsers
+  try {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-9999px";
+    textArea.style.top = "-9999px";
+    textArea.setAttribute("readonly", "");
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    // oxlint-disable-next-line typescript/no-deprecated
+    const successful = document.execCommand("copy");
+    document.body.removeChild(textArea);
+    return successful;
+  } catch (err) {
+    console.error("Fallback copy failed:", err);
+    return false;
   }
 }
 

@@ -172,6 +172,12 @@ const routes: Route[] = [
     },
   },
   {
+    path: "/result",
+    load: async (_params, options) => {
+      await PageController.change("raceResult", options);
+    },
+  },
+  {
     path: "/result:sessionId",
     load: async (params, options) => {
       await PageController.change("raceResult", {

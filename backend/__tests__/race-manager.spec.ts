@@ -8,11 +8,11 @@ describe("RaceManager", () => {
     manager = new RaceManager();
   });
 
-  it("creates a new session with Indonesian text and 60-second duration", () => {
+  it("creates a new session with Indonesian text and 180-second default duration", () => {
     const session = manager.getOrCreateSession("session123");
     expect(session.id).toBe("session123");
     expect(session.status).toBe("lobby");
-    expect(session.durationSeconds).toBe(60);
+    expect(session.durationSeconds).toBe(180);
     expect(session.text.length).toBeGreaterThan(10);
     expect(session.author).toBeDefined();
   });
@@ -41,29 +41,36 @@ describe("RaceManager", () => {
     expect(updated?.accuracy).toBe(98);
   });
 
-  it("finishes participants and assigns ranks in order", () => {
+  it("finishes participants and assigns ranks based on best WPM", () => {
     manager.joinParticipant("s1", "p1", "Budi", false);
     manager.joinParticipant("s1", "p2", "Siti", false);
     const session = manager.getSession("s1")!;
     session.status = "racing";
 
-    // P2 finishes first
+    // P2 finishes first with 90 WPM
     const res1 = manager.finishParticipant("s1", "p2", 90, 100, 25);
-    expect(res1?.participant.rank).toBe(1);
+    expect(res1?.participant.bestWpm).toBe(90);
     expect(res1?.participant.finished).toBe(true);
-    expect(session.status).toBe("racing"); // p1 hasn't finished yet
+    expect(res1?.participant.rank).toBe(1);
 
-    // P1 finishes second
+    // P1 finishes with 80 WPM
     const res2 = manager.finishParticipant("s1", "p1", 80, 95, 30);
+    expect(res2?.participant.bestWpm).toBe(80);
     expect(res2?.participant.rank).toBe(2);
-    expect(res2?.participant.finished).toBe(true);
 
-    // All finished -> session status = finished
-    expect(session.status).toBe("finished");
+    // P1 attempts again and gets 95 WPM -> P1 rank becomes 1!
+    manager.startNextAttempt("s1", "p1");
+    expect(session.participants.get("p1")?.finished).toBe(false);
+    expect(session.participants.get("p1")?.bestWpm).toBe(80);
+
+    const res3 = manager.finishParticipant("s1", "p1", 95, 98, 28);
+    expect(res3?.participant.bestWpm).toBe(95);
 
     const lb = manager.getLeaderboard(session);
-    expect(lb[0]!.id).toBe("p2");
-    expect(lb[1]!.id).toBe("p1");
+    expect(lb[0]!.id).toBe("p1"); // P1 is now 1st with 95 WPM
+    expect(lb[0]!.bestWpm).toBe(95);
+    expect(lb[1]!.id).toBe("p2"); // P2 is 2nd with 90 WPM
+    expect(lb[1]!.bestWpm).toBe(90);
   });
 
   it("resets race state and generates new passage", () => {

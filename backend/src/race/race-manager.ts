@@ -5,9 +5,15 @@ export class RaceManager {
   private sessions = new Map<string, RaceSession>();
   private activeTimers = new Map<string, NodeJS.Timeout[]>();
 
-  public getOrCreateSession(sessionId: string): RaceSession {
+  public getOrCreateSession(
+    sessionId: string,
+    customDurationSeconds?: number,
+  ): RaceSession {
     const existing = this.sessions.get(sessionId);
     if (existing !== undefined) {
+      if (customDurationSeconds !== undefined && customDurationSeconds > 0) {
+        existing.durationSeconds = customDurationSeconds;
+      }
       return existing;
     }
 
@@ -18,7 +24,10 @@ export class RaceManager {
       createdAt: Date.now(),
       text: passage.text,
       author: passage.author,
-      durationSeconds: 60,
+      durationSeconds:
+        customDurationSeconds !== undefined && customDurationSeconds > 0
+          ? customDurationSeconds
+          : 180,
       participants: new Map<string, RaceParticipant>(),
     };
 
@@ -35,8 +44,9 @@ export class RaceManager {
     participantId: string,
     name: string,
     isTeacher: boolean,
+    customDurationSeconds?: number,
   ): RaceParticipant {
-    const session = this.getOrCreateSession(sessionId);
+    const session = this.getOrCreateSession(sessionId, customDurationSeconds);
     const participant: RaceParticipant = {
       id: participantId,
       name: name.trim() || "Siswa",
@@ -45,6 +55,9 @@ export class RaceManager {
       wpm: 0,
       accuracy: 100,
       finished: false,
+      bestWpm: 0,
+      bestAccuracy: 100,
+      attemptsCount: 0,
     };
 
     session.participants.set(participantId, participant);
@@ -74,11 +87,18 @@ export class RaceManager {
     if (session?.status !== "racing") return undefined;
 
     const participant = session.participants.get(participantId);
-    if (participant === undefined || participant.finished) return undefined;
+    if (participant === undefined) return undefined;
 
+    const currentWpm = Math.max(0, Math.round(wpm));
+    const currentAcc = Math.min(100, Math.max(0, Math.round(accuracy)));
     participant.progress = Math.min(100, Math.max(0, Math.round(progress)));
-    participant.wpm = Math.max(0, Math.round(wpm));
-    participant.accuracy = Math.min(100, Math.max(0, Math.round(accuracy)));
+    participant.wpm = currentWpm;
+    participant.accuracy = currentAcc;
+
+    if (currentWpm > participant.bestWpm) {
+      participant.bestWpm = currentWpm;
+      participant.bestAccuracy = currentAcc;
+    }
 
     return participant;
   }
@@ -98,35 +118,41 @@ export class RaceManager {
     const participant = session.participants.get(participantId);
     if (participant === undefined) return undefined;
 
-    if (!participant.finished) {
-      participant.finished = true;
-      participant.progress = 100;
-      participant.wpm = Math.max(0, Math.round(wpm));
-      participant.accuracy = Math.min(100, Math.max(0, Math.round(accuracy)));
-      participant.finishTime = Date.now();
-      participant.durationSeconds = durationSeconds;
+    participant.attemptsCount += 1;
+    const finalWpm = Math.max(0, Math.round(wpm));
+    const finalAcc = Math.min(100, Math.max(0, Math.round(accuracy)));
+    participant.finished = true;
+    participant.progress = 100;
+    participant.wpm = finalWpm;
+    participant.accuracy = finalAcc;
+    participant.finishTime = Date.now();
+    participant.durationSeconds = durationSeconds;
 
-      // Assign rank among finished non-teacher participants
-      const finishedCount = Array.from(session.participants.values()).filter(
-        (p) => !p.isTeacher && p.finished && p.id !== participantId,
-      ).length;
-      participant.rank = finishedCount + 1;
+    if (finalWpm > participant.bestWpm) {
+      participant.bestWpm = finalWpm;
+      participant.bestAccuracy = finalAcc;
     }
 
     const leaderboard = this.getLeaderboard(session);
-
-    // If all student participants finished, set session status = "finished"
-    const students = Array.from(session.participants.values()).filter(
-      (p) => !p.isTeacher,
-    );
-    const allFinished =
-      students.length > 0 && students.every((p) => p.finished);
-    if (allFinished) {
-      session.status = "finished";
-      this.clearSessionTimers(sessionId);
-    }
-
     return { participant, leaderboard };
+  }
+
+  public startNextAttempt(
+    sessionId: string,
+    participantId: string,
+  ): RaceParticipant | undefined {
+    const session = this.sessions.get(sessionId);
+    if (session?.status !== "racing") return undefined;
+
+    const participant = session.participants.get(participantId);
+    if (participant === undefined) return undefined;
+
+    participant.progress = 0;
+    participant.wpm = 0;
+    participant.accuracy = 100;
+    participant.finished = false;
+
+    return participant;
   }
 
   public startRace(
@@ -134,9 +160,14 @@ export class RaceManager {
     onCountdown: (seconds: number) => void,
     onStart: (session: SerializedSession) => void,
     onTimeout: (leaderboard: RaceParticipant[]) => void,
+    customDurationSeconds?: number,
   ): boolean {
     const session = this.sessions.get(sessionId);
     if (session === undefined) return false;
+
+    if (customDurationSeconds !== undefined && customDurationSeconds > 0) {
+      session.durationSeconds = customDurationSeconds;
+    }
 
     // Reset participant progress before race starts
     for (const p of session.participants.values()) {
@@ -144,6 +175,9 @@ export class RaceManager {
       p.wpm = 0;
       p.accuracy = 100;
       p.finished = false;
+      p.bestWpm = 0;
+      p.bestAccuracy = 100;
+      p.attemptsCount = 0;
       p.rank = undefined;
       p.finishTime = undefined;
       p.durationSeconds = undefined;
@@ -165,7 +199,7 @@ export class RaceManager {
         session.startTime = Date.now();
         onStart(this.serializeSession(session));
 
-        // Start 60-second race timer
+        // Start race duration timer (default 180 seconds)
         const raceTimeout = setTimeout(() => {
           this.concludeRace(sessionId, onTimeout);
         }, session.durationSeconds * 1000);
@@ -188,20 +222,9 @@ export class RaceManager {
     session.status = "finished";
     this.clearSessionTimers(sessionId);
 
-    // Rank any remaining unfinished participants
-    const unfinishedStudents = Array.from(session.participants.values())
-      .filter((p) => !p.isTeacher && !p.finished)
-      .sort((a, b) => b.progress - a.progress || b.wpm - a.wpm);
-
-    const alreadyFinishedCount = Array.from(
-      session.participants.values(),
-    ).filter((p) => !p.isTeacher && p.finished).length;
-
-    unfinishedStudents.forEach((student, index) => {
-      student.finished = true;
-      student.rank = alreadyFinishedCount + index + 1;
-      student.durationSeconds = session.durationSeconds;
-    });
+    for (const p of session.participants.values()) {
+      p.finished = true;
+    }
 
     const leaderboard = this.getLeaderboard(session);
     if (onTimeout !== undefined) {
@@ -213,12 +236,17 @@ export class RaceManager {
   public resetRace(
     sessionId: string,
     customText?: string,
+    customDurationSeconds?: number,
   ): SerializedSession | undefined {
     const session = this.sessions.get(sessionId);
     if (session === undefined) return undefined;
 
     this.clearSessionTimers(sessionId);
     session.status = "lobby";
+
+    if (customDurationSeconds !== undefined && customDurationSeconds > 0) {
+      session.durationSeconds = customDurationSeconds;
+    }
 
     if (customText !== undefined && customText.trim().length > 0) {
       session.text = customText.trim();
@@ -234,6 +262,9 @@ export class RaceManager {
       p.wpm = 0;
       p.accuracy = 100;
       p.finished = false;
+      p.bestWpm = 0;
+      p.bestAccuracy = 100;
+      p.attemptsCount = 0;
       p.rank = undefined;
       p.finishTime = undefined;
       p.durationSeconds = undefined;
@@ -243,19 +274,26 @@ export class RaceManager {
   }
 
   public getLeaderboard(session: RaceSession): RaceParticipant[] {
-    return Array.from(session.participants.values())
+    const list = Array.from(session.participants.values())
       .filter((p) => !p.isTeacher)
       .sort((a, b) => {
-        if (a.rank !== undefined && b.rank !== undefined) {
-          return a.rank - b.rank;
+        if (b.bestWpm !== a.bestWpm) {
+          return b.bestWpm - a.bestWpm;
         }
-        if (a.rank !== undefined) return -1;
-        if (b.rank !== undefined) return 1;
+        if (b.bestAccuracy !== a.bestAccuracy) {
+          return b.bestAccuracy - a.bestAccuracy;
+        }
         if (b.progress !== a.progress) {
           return b.progress - a.progress;
         }
         return b.wpm - a.wpm;
       });
+
+    list.forEach((p, idx) => {
+      p.rank = idx + 1;
+    });
+
+    return list;
   }
 
   public serializeSession(session: RaceSession): SerializedSession {

@@ -1,19 +1,73 @@
-# TypingTest Multiplayer (Classroom Edition)
+# TypingTest Live Competition (Multiplayer Classroom Edition)
 
 **Language / Bahasa:** [ Bahasa Indonesia ](README.md) | **[ English ]**
 
-A web-based typing speed competition application combining the modern aesthetics of **Monkeytype** with the real-time racing mechanics of **TypeRacer**. Built specifically for computer classrooms and educational competitions without requiring student registrations, emails, or SSO.
+A web-based typing speed competition application combining the modern aesthetics of **Monkeytype** with the real-time racing mechanics of **TypeRacer**. Built specifically for computer classrooms, schools, and educational workshops without requiring student registrations, emails, or SSO.
 
 ---
 
 ## Key Features
 
-- **Student Screen (`/race`)**: Students simply enter their Full Name & Session ID (e.g., `908235`). No login, email, or SSO required.
-- **Teacher / Projector Screen (`/result<sessionId>`)**: Wide-screen display designed for projectors featuring synchronized 3-2-1 countdowns, animated real-time vehicle/rocket race tracks, podium ranking (Gold, Silver, Bronze), and celebration confetti.
-- **Indonesian Texts & 60s Mode**: Curated inspirational and educational quotes in Indonesian with a 60-second competition countdown.
-- **Real-time Synchronization**: Low-latency WebSockets for instant progress and WPM updates.
-- **Lightweight & Fast**: Standalone in-memory backend without external database dependencies (MongoDB/Redis) for classroom race sessions.
-- **Node.js 24 Ready**: Fully optimized and verified on Node.js version 24 LTS.
+- **Teacher / Projector Screen (`/result`)**:
+  - Visiting `/result` immediately presents the teacher with the **New Competition Setup** form (Session ID input, **Randomize Code** button, and duration selection: 1m, 2m, **3m default**, 5m).
+  - High-impact projector display titled ***TypingTest Live Competition*** featuring synchronized 3-2-1 countdowns, animated TypeRacer car lanes, and an automated top 3 podium (Gold, Silver, Bronze).
+  - Robust and flexible **Copy Link** button that works on any domain or LAN IP (e.g., `http://192.168.0.200:3002` or `https://domain.com`).
+- **3-Minute Competition & Best WPM (Highest Score) Ranking**:
+  - Default competition duration is extended to **3 minutes (180 seconds)**.
+  - Students finishing a passage early can immediately press **Enter** or click *"Type Next Round"* to replay passages as long as time remains.
+  - The projector leaderboard automatically tracks and ranks students by their **Highest WPM (Best Score)** across all attempts.
+- **Student Screen (`/race`)**:
+  - Students simply enter their Full Name & Session ID (e.g. `908235`). Zero account logins, emails, or SSO required.
+- **Real-time Synchronization**:
+  - Powered by low-latency WebSockets for instant progress and WPM updates every second.
+- **Lightweight & Database-Free**:
+  - Standalone in-memory backend without MongoDB or Redis dependencies for classroom race sessions.
+- **Node.js 24 LTS Ready**:
+  - Fully optimized and tested on Node.js version 24 LTS.
+
+---
+
+## Classroom Operational Guide
+
+### A. For Teacher / Competition Administrator
+1. **Create Competition Session**:
+   - Open a browser on the teacher's PC and navigate to:
+     ```text
+     http://localhost:3002/result
+     (or https://your-domain.com/result)
+     ```
+   - Enter a **Session ID** (or click **Randomize Code** for a random 6-digit code).
+   - Select the **Competition Duration** (default: **3 Minutes**).
+   - Click **Open Competition Room (Projector)**.
+2. **Display on Projector / Smart TV**:
+   - Project the browser tab onto the classroom screen.
+   - Click the **Fullscreen** button in the top right corner.
+3. **Share Link / Session Code with Students**:
+   - Click **Copy Link** to share the student link, or direct students to open `/race` on their computers and enter the session code shown on the projector.
+4. **Start the Race**:
+   - Monitor the list of joined students on the race tracks.
+   - Once all students have joined the lobby, click **Start Race**. A synchronized 3-2-1 countdown begins across all devices.
+5. **After the Race**:
+   - The competition concludes when time expires. The podium highlights the 1st (Gold), 2nd (Silver), and 3rd (Bronze) place champions.
+   - Click **Rematch** to start another round with a new random passage.
+
+---
+
+### B. For Students
+1. **Join the Competition**:
+   - Open your browser and navigate to:
+     ```text
+     http://<teacher-ip>:3002/race
+     (or the link provided by the teacher)
+     ```
+   - Enter your **Full Name** and the **Session ID** displayed on the projector.
+   - Click **Join Race**.
+2. **Wait in Lobby**:
+   - Wait for the teacher to start the race. Place your fingers on the *home row* keys (ASDF JKL;).
+3. **Type & Repeat for Best Score**:
+   - Type the displayed passage as quickly and accurately as possible.
+   - If you finish typing the paragraph before the 3-minute timer ends, press **Enter** to start the next round!
+   - Your score on the podium will be your **Highest WPM (Best Score)** among all rounds.
 
 ---
 
@@ -51,8 +105,8 @@ node node_modules/vite/bin/vite.js dev
 ```
 
 Open in browser:
-- Teacher / Projector View: [http://localhost:3002/result908235](http://localhost:3002/result908235)
-- Student View: [http://localhost:3002/race?session=908235](http://localhost:3002/race?session=908235)
+- Teacher / Projector Setup: [http://localhost:3002/result](http://localhost:3002/result)
+- Student View: [http://localhost:3002/race](http://localhost:3002/race)
 
 ---
 
@@ -122,15 +176,15 @@ cd frontend && pnpm run build && cd ..
 
 ### Step 3: Run Production Services with PM2
 
-Run both services (Backend and Frontend) in the background using PM2:
+Run both services (Backend and Frontend) in the background with PM2:
 
 ```bash
 cd /var/www/typingtest
 
-# 1. Run Backend Race WebSocket Server (Port 5005)
+# 1. Start Backend Race WebSocket Server (Port 5005)
 pm2 start "node backend/node_modules/tsx/dist/cli.mjs backend/src/race/standalone-server.ts" --name "typingtest-race"
 
-# 2. Run Frontend Web Server (Port 3002)
+# 2. Start Frontend Web Server (Port 3002)
 pm2 start "pnpm --filter @monkeytype/frontend run start" --name "typingtest-frontend"
 
 # Save process list to auto-start on server reboot
@@ -146,11 +200,11 @@ pm2 logs
 
 ---
 
-## 4. NGINX Pure Reverse Proxy Configuration
+## 4. Pure NGINX Reverse Proxy Configuration
 
-In this architecture, NGINX **does not serve static files directly from disk**. Instead, it functions purely as a **Reverse Proxy Gateway**. Benefits:
-- The frontend process runs actively on port `3002` and remains testable locally.
-- NGINX can be hosted on the same server **or on a completely separate server** (e.g., NGINX edge gateway/load balancer on Server A, app running on Server B).
+In this setup, NGINX **does not serve static files directly**, acting strictly as a **Reverse Proxy Gateway**. Advantages:
+- The frontend runs locally on port `3002` and can be tested independently.
+- NGINX can be hosted on the same server **or on a separate reverse proxy/load balancer machine**.
 
 ### Create NGINX Configuration
 
@@ -162,9 +216,9 @@ Paste the following configuration:
 
 ```nginx
 # -------------------------------------------------------------
-# Upstream Application Definitions
-# - If NGINX is on the SAME server: use 127.0.0.1
-# - If NGINX is on a SEPARATE server: replace with the application server IP
+# Upstream Definitions
+# - Same server: use 127.0.0.1
+# - Different server: replace with the application server IP
 # -------------------------------------------------------------
 upstream typingtest_frontend {
     server 127.0.0.1:3002;
@@ -181,14 +235,14 @@ server {
     listen [::]:80;
     server_name your-domain.com; # Replace with your domain or server public IP
 
-    # Gzip compression for fast transfer
+    # Gzip compression for fast asset delivery
     gzip on;
     gzip_vary on;
     gzip_proxied any;
     gzip_comp_level 6;
     gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript image/svg+xml;
 
-    # 1. Reverse Proxy WebSocket (/ws/)
+    # 1. Reverse Proxy WebSocket Race Endpoint (/ws/)
     location /ws/ {
         proxy_pass http://typingtest_backend;
         proxy_http_version 1.1;
@@ -199,12 +253,12 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        # Generous timeout so student connections do not drop mid-session
+        # Long timeout so student WebSockets do not drop
         proxy_read_timeout 86400s;
         proxy_send_timeout 86400s;
     }
 
-    # 2. Reverse Proxy REST API Backend (/configuration, /health)
+    # 2. Reverse Proxy REST API Endpoints (/configuration, /health)
     location ~ ^/(configuration|health) {
         proxy_pass http://typingtest_backend;
         proxy_http_version 1.1;
@@ -234,48 +288,47 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-### Free SSL Setup (HTTPS / WSS) with Let's Encrypt
+### Free SSL (HTTPS / WSS) with Let's Encrypt
 
 ```bash
 sudo apt install -y certbot python3-certbot-nginx
 sudo certbot --nginx -d your-domain.com
 ```
-Certbot will automatically update the NGINX configuration to port 443 and redirect all HTTP/WS traffic to HTTPS/WSS.
 
 ---
 
-## 5. Specific Configurations (Ads, Database, and .env)
+## 5. Configurations (Ads, Database, and .env)
 
 ### A. Ad-Free by Default
-- Default setting in `frontend/src/ts/constants/default-config.ts` has been permanently set to:
+- Default setting in `frontend/src/ts/constants/default-config.ts` is permanently:
   ```ts
   ads: "off"
   ```
-- Students and teachers will not see advertisement banners, donation boxes, or third-party trackers.
+- Neither students nor teachers will ever see advertisement placeholders, banners, or third-party trackers.
 
 ### B. Database (Zero-Dependency In-Memory Architecture)
-- **Classroom Competition Mode (`standalone-server.ts`)**:
-  - Runs **100% in-memory**. All competition sessions, WebSocket traffic, and student leaderboards are processed instantly in RAM.
-  - **No MongoDB or Redis installation is required.** Memory usage remains negligible (< 60MB RAM) with zero database maintenance.
+- **Classroom Race Server (`standalone-server.ts`)**:
+  - Runs **100% in-memory**. Sessions, WebSocket connections, and real-time leaderboards live in RAM.
+  - **No MongoDB or Redis installation required.** Very minimal resource footprint (< 60MB RAM) with zero database maintenance.
 
 ### C. Environment Files (`.env`)
-For backend:
+Backend `.env`:
 ```env
 # backend/.env
 PORT=5005
 NODE_ENV=production
 ```
-For frontend:
-No additional `.env` file is required because NGINX handles the reverse proxying of `/ws/` and `/configuration` to the backend.
+Frontend:
+No `.env` required since NGINX reverse-proxies `/ws/` and `/configuration` directly to the backend.
 
 ---
 
 ## 6. Testing & Verification
 
-1. **Direct Access (Local / Internal Network)**:
-   - Teacher Projector: `http://localhost:3002/result908235`
-   - Student Screen: `http://localhost:3002/race?session=908235`
+1. **Direct Access (Local / LAN)**:
+   - Teacher / Projector Setup: `http://localhost:3002/result`
+   - Student Screen: `http://localhost:3002/race`
 2. **Public Access (via NGINX)**:
-   - Teacher Projector: `https://your-domain.com/result908235`
-   - Student Screen: `https://your-domain.com/race?session=908235`
-3. Click **Gabung Lomba** (Join Race) on the student tab, then click **Mulai Lomba** (Start Race) on the teacher screen. The 3-2-1 countdown and typing arena will synchronize in real-time!
+   - Teacher / Projector Setup: `https://your-domain.com/result`
+   - Student Screen: `https://your-domain.com/race`
+3. Click **Open Competition Room** on the teacher's screen, share the session code with students, and click **Start Race**. The 3-2-1 countdown and typing arena will synchronize in real-time across all devices!

@@ -1,19 +1,73 @@
-# TypingTest Multiplayer (Classroom Edition)
+# TypingTest Live Competition (Multiplayer Classroom Edition)
 
 **Bahasa / Language:** **[ Bahasa Indonesia ]** | [ English ](README-EN.md)
 
-Aplikasi perlombaan mengetik cepat (typing speed competition) berbasis web yang mengadopsi tampilan modern **Monkeytype** dan antarmuka balapan real-time **TypeRacer**. Dirancang khusus untuk kelas komputer sekolah/edukasi tanpa mewajibkan registrasi, email, atau SSO bagi murid.
+Aplikasi perlombaan mengetik cepat (*typing speed competition*) berbasis web yang menggabungkan estetika modern **Monkeytype** dan antarmuka balapan real-time **TypeRacer**. Dirancang khusus untuk kelas komputer sekolah, madrasah, dan pelatihan edukasi tanpa mewajibkan registrasi, email, atau SSO bagi murid.
 
 ---
 
 ## Fitur Utama
 
-- **Layar Murid (`/race`)**: Cukup masukkan Nama Lengkap & ID Sesi (misal `908235`). Tanpa login/email/SSO.
-- **Layar Guru / Proyektor (`/result<sessionId>`)**: Tampilan layar lebar untuk proyektor dengan countdown bersama 3-2-1, live race tracks animasi mobil/roket, podium juara 1, 2, 3 (Emas, Perak, Perunggu), dan efek konfeti selebrasi.
-- **Bahasa & Mode Lomba**: Menggunakan teks kutipan inspiratif & edukatif Bahasa Indonesia dengan batas waktu 60 detik.
-- **Real-time Synchronization**: Menggunakan WebSocket ultra-low latency untuk update progres dan WPM.
-- **Ringan & Cepat**: Backend standalone mandiri tanpa ketergantungan database eksternal (MongoDB/Redis) untuk mode kelas lomba.
-- **Node.js 24 Ready**: Dioptimalkan dan teruji penuh pada Node.js versi 24 LTS.
+- **Layar Guru / Proyektor (`/result`)**:
+  - Saat mengunjungi `/result`, Admin Guru langsung disajikan formulir **Pengaturan Sesi Baru** (input Kode Sesi, tombol **Acak Kode**, dan pemilihan durasi kompetisi 1m, 2m, **3m default**, 5m).
+  - Tampilan layar lebar proyektor bertajuk ***TypingTest Live Competition*** dengan countdown bersama 3-2-1, lintasan balapan murid animasi mobil TypeRacer, serta podium juara 1, 2, 3 (Emas, Perak, Perunggu).
+  - Tombol **Salin Link** yang cerdas dan fleksibel: bekerja di semua format domain maupun IP lokal LAN (misal: `http://192.168.0.200:3002` atau `https://domainku.com`).
+- **Kompetisi 3 Menit & Skor WPM Terbaik (Best Score)**:
+  - Durasi sesi kompetisi default adalah **3 menit (180 detik)**.
+  - Murid yang selesai mengetik satu paragraf lebih awal dapat langsung menekan **Enter** atau klik *"Ketik Putaran Berikutnya"* untuk mengulang pengetikan selama waktu masih tersedia.
+  - Sistem otomatis mencatat dan mengurutkan **skor WPM tertinggi (Best WPM)** siswa di layar proyektor.
+- **Layar Murid (`/race`)**:
+  - Siswa cukup memasukkan Nama Lengkap & Kode Sesi (misal `908235`). Tanpa login akun, tanpa email, dan tanpa SSO.
+- **Real-time Synchronization**:
+  - Menggunakan WebSocket dengan latensi sangat rendah untuk update progres pengetikan dan WPM setiap detik.
+- **Ringan & Bebas Ketergantungan Database**:
+  - Backend *in-memory* mandiri tanpa ketergantungan MongoDB atau Redis untuk sesi lomba kelas.
+- **Node.js 24 LTS Ready**:
+  - Dioptimalkan dan teruji penuh pada Node.js versi 24 LTS.
+
+---
+
+## Panduan Penggunaan di Kelas Komputer
+
+### A. Untuk Admin Guru / Pengawas Lomba
+1. **Buat Sesi Lomba**:
+   - Buka browser di komputer guru dan akses halaman:
+     ```text
+     http://localhost:3002/result
+     (atau https://domain-anda.com/result)
+     ```
+   - Tentukan **Kode Sesi** (atau klik tombol **Acak Kode** untuk membuat 6 digit acak).
+   - Pilih **Durasi Sesi Kompetisi** (disarankan **3 Menit**).
+   - Klik **Buka Ruang Lomba (Proyektor)**.
+2. **Tampilkan ke Layar Proyektor / Smart TV**:
+   - Proyeksikan tab browser tersebut ke layar proyektor kelas.
+   - Klik ikon **Layar Penuh (Fullscreen)** di pojok kanan atas agar tampilan proyektor maksimal.
+3. **Bagikan Link / Kode ke Siswa**:
+   - Klik tombol **Salin Link** untuk menyalin link sesi murid, atau arahkan siswa untuk membuka `/race` di browser komputer masing-masing dengan memasukkan Kode Sesi yang tertera di proyektor.
+4. **Mulai Perlombaan**:
+   - Perhatikan daftar siswa yang terhubung di lintasan balapan.
+   - Setelah seluruh siswa bergabung, klik tombol **Mulai Lomba**. Hitungan mundur 3-2-1 akan berjalan serentak di semua komputer.
+5. **Setelah Selesai**:
+   - Sesi lomba berakhir saat waktu habis. Papan skor dan podium juara otomatis menampilkan Juara 1 (Emas), Juara 2 (Perak), dan Juara 3 (Perunggu).
+   - Guru dapat menekan **Ulangi Lomba (Rematch)** untuk ronde balapan berikutnya dengan teks acak baru.
+
+---
+
+### B. Untuk Siswa / Murid
+1. **Bergabung ke Lomba**:
+   - Buka browser di komputer Anda dan akses:
+     ```text
+     http://<ip-komputer-guru>:3002/race
+     (atau link yang dibagikan guru)
+     ```
+   - Masukkan **Nama Lengkap** Anda dan **Kode Sesi** yang ditampilkan di layar proyektor guru.
+   - Klik **Gabung Lomba**.
+2. **Menunggu di Lobi**:
+   - Tunggu hingga guru menekan tombol mulai lomba. Posisi jari Anda siap di tombol *home row* keyboard (ASDF JKL;).
+3. **Mengetik & Mengulang Putaran (Best Score)**:
+   - Ketik kalimat kutipan pada layar secepat dan seakurat mungkin.
+   - Jika Anda selesai mengetik paragraf sebelum waktu 3 menit habis, tekan tombol **Enter** untuk langsung mengetik putaran berikutnya!
+   - Skor yang akan masuk ke papan juara adalah **skor WPM tertinggi** Anda dari seluruh putaran.
 
 ---
 
@@ -51,8 +105,8 @@ node node_modules/vite/bin/vite.js dev
 ```
 
 Buka di browser:
-- Layar Guru / Proyektor: [http://localhost:3002/result908235](http://localhost:3002/result908235)
-- Layar Murid: [http://localhost:3002/race?session=908235](http://localhost:3002/race?session=908235)
+- Layar Pengaturan Guru / Proyektor: [http://localhost:3002/result](http://localhost:3002/result)
+- Layar Murid: [http://localhost:3002/race](http://localhost:3002/race)
 
 ---
 
@@ -273,9 +327,9 @@ Tidak memerlukan `.env` tambahan karena NGINX otomatis me-reverse proxy `/ws/` d
 ## 6. Pengujian & Verifikasi
 
 1. **Akses Langsung (Lokal/Internal)**:
-   - Proyektor Guru: `http://localhost:3002/result908235`
-   - Layar Siswa: `http://localhost:3002/race?session=908235`
+   - Pengaturan Guru / Proyektor: `http://localhost:3002/result`
+   - Layar Siswa: `http://localhost:3002/race`
 2. **Akses Publik (via NGINX)**:
-   - Proyektor Guru: `https://domain-anda.com/result908235`
-   - Layar Siswa: `https://domain-anda.com/race?session=908235`
-3. Klik **Gabung Lomba** di tab siswa, lalu klik **Mulai Lomba** di layar proyektor. Hitung mundur 3-2-1 dan arena pengetikan akan tersinkronisasi secara real-time!
+   - Pengaturan Guru / Proyektor: `https://domain-anda.com/result`
+   - Layar Siswa: `https://domain-anda.com/race`
+3. Klik **Buka Ruang Lomba** di layar guru, arahkan siswa memasukkan kode sesi di tab siswa, lalu klik **Mulai Lomba** di layar proyektor. Hitung mundur 3-2-1 dan arena pengetikan akan tersinkronisasi secara real-time!

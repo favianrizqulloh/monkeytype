@@ -1,4 +1,5 @@
 import {
+  createEffect,
   createMemo,
   createSignal,
   For,
@@ -11,6 +12,7 @@ import {
 import { disconnectRaceSocket, joinRoom } from "../../../services/race-socket";
 import {
   getMyName,
+  getMyParticipantId,
   getRaceStatus,
   getSessionId,
   leaderboard,
@@ -67,6 +69,12 @@ export function RacePage(): JSXElement {
     resetRaceState();
   });
 
+  createEffect(() => {
+    if (getRaceStatus() === "lobby") {
+      setFinalResult(null);
+    }
+  });
+
   const handleJoin = (e?: Event): void => {
     e?.preventDefault();
     const name = inputName().trim();
@@ -80,10 +88,16 @@ export function RacePage(): JSXElement {
     joinRoom(session, name, false);
   };
 
+  const myParticipant = createMemo(() =>
+    participants.find(
+      (p) => p.id === getMyParticipantId() || p.name === getMyName(),
+    ),
+  );
+
   const myRank = createMemo(() => {
     const name = getMyName();
     const entry = leaderboard.find((p) => p.name === name);
-    return entry?.rank;
+    return entry?.rank ?? myParticipant()?.rank;
   });
 
   return (
@@ -142,6 +156,26 @@ export function RacePage(): JSXElement {
               <span>Gabung Lomba</span>
             </Button>
           </form>
+
+          {/* Card Petunjuk Siswa */}
+          <div class="rounded-radius flex flex-col gap-2 border border-sub/20 bg-sub-alt/40 p-4 text-xs text-sub">
+            <div class="flex items-center gap-2 font-bold text-text">
+              <Fa icon="fa-info-circle" class="text-main" />
+              <span>Aturan & Petunjuk Lomba untuk Siswa:</span>
+            </div>
+            <ul class="list-inside list-disc space-y-1.5 pl-1 text-sub">
+              <li>Durasi lomba berlangsung selama 3 menit secara serentak.</li>
+              <li>
+                Jika Anda menyelesaikan paragraf sebelum waktu habis, langsung
+                tekan <b>Enter</b> untuk mengetik putaran berikutnya.
+              </li>
+              <li>
+                Skor yang diperhitungkan di papan juara adalah{" "}
+                <b class="text-main">WPM Tertinggi (Best Score)</b> yang Anda
+                raih!
+              </li>
+            </ul>
+          </div>
 
           <p class="text-center text-xs text-sub">
             Murni untuk kelas belajar komputer. Tanpa login email atau SSO.
@@ -247,14 +281,16 @@ export function RacePage(): JSXElement {
         </Show>
 
         {/* State 5: Finished Screen */}
-        <Show when={getRaceStatus() === "finished" || finalResult() !== null}>
+        <Show when={getRaceStatus() === "finished"}>
           <div class="flex w-full flex-col items-center gap-6 rounded-double border border-main/30 bg-sub-alt/40 p-8 text-center shadow-2xl backdrop-blur-md">
             <div class="flex h-16 w-16 items-center justify-center rounded-full bg-main/20 text-main shadow-[0_0_24px_var(--main-color)]">
               <Fa icon="fa-trophy" size={2} />
             </div>
 
             <div>
-              <h2 class="text-3xl font-black text-text">Kamu Telah Selesai!</h2>
+              <h2 class="text-3xl font-black text-text">
+                Kompetisi Telah Selesai!
+              </h2>
               <Show when={myRank() !== undefined}>
                 {(rank) => (
                   <p class="mt-1 font-mono text-lg font-bold text-main">
@@ -268,35 +304,38 @@ export function RacePage(): JSXElement {
             {/* Final Stats Cards */}
             <div class="grid w-full max-w-md grid-cols-3 gap-3">
               <div class="rounded-radius flex flex-col items-center border border-sub/20 bg-bg p-3">
-                <span class="text-xs text-sub">Kecepatan</span>
+                <span class="text-xs text-sub">WPM Terbaik</span>
                 <span class="font-mono text-2xl font-black text-main">
-                  {finalResult()?.wpm ?? 0}
+                  {myParticipant()?.bestWpm ?? finalResult()?.wpm ?? 0}
                 </span>
-                <span class="text-[10px] text-sub">WPM</span>
+                <span class="text-[10px] text-sub">Skor Puncak</span>
               </div>
 
               <div class="rounded-radius flex flex-col items-center border border-sub/20 bg-bg p-3">
                 <span class="text-xs text-sub">Akurasi</span>
                 <span class="font-mono text-2xl font-black text-text">
-                  {finalResult()?.accuracy ?? 100}%
+                  {myParticipant()?.bestAccuracy ??
+                    finalResult()?.accuracy ??
+                    100}
+                  %
                 </span>
                 <span class="text-[10px] text-sub">Tepat</span>
               </div>
 
               <div class="rounded-radius flex flex-col items-center border border-sub/20 bg-bg p-3">
-                <span class="text-xs text-sub">Waktu</span>
+                <span class="text-xs text-sub">Total Putaran</span>
                 <span class="font-mono text-2xl font-black text-text">
-                  {finalResult()?.timeSec ?? 60}s
+                  {myParticipant()?.attemptsCount ?? 1}
                 </span>
-                <span class="text-[10px] text-sub">Durasi</span>
+                <span class="text-[10px] text-sub">Percobaan</span>
               </div>
             </div>
 
             <div class="rounded-radius border border-sub/20 bg-bg/60 p-4 text-xs text-sub">
               <Fa icon="fa-tv" class="mr-2 text-main" />
               <span>
-                Lihat papan skor animasi dan highlight podium juara di layar
-                proyektor kelas!
+                Lihat animasi peringkat dan podium juara kelas di layar utama
+                proyektor!
               </span>
             </div>
           </div>

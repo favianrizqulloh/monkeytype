@@ -9,13 +9,21 @@ import {
   Show,
 } from "solid-js";
 
-import { sendFinish, sendProgress } from "../../../services/race-socket";
 import {
+  sendFinish,
+  sendNextAttempt,
+  sendProgress,
+} from "../../../services/race-socket";
+import {
+  getMyName,
+  getMyParticipantId,
   getPassageAuthor,
   getPassageText,
   getRemainingSeconds,
+  participants,
 } from "../../../states/race";
 import { cn } from "../../../utils/cn";
+import { Button } from "../../common/Button";
 import { Fa } from "../../common/Fa";
 
 export type RaceTypingArenaProps = {
@@ -44,11 +52,28 @@ export function RaceTypingArena(props: RaceTypingArenaProps): JSXElement {
     return Math.min(100, Math.round((len / totalLength()) * 100));
   });
 
+  const myParticipant = createMemo(() =>
+    participants.find(
+      (p) => p.id === getMyParticipantId() || p.name === getMyName(),
+    ),
+  );
+
   onMount(() => {
     setStartTime(Date.now());
     if (inputRef) {
       inputRef.focus();
     }
+
+    const handleKeyDown = (e: KeyboardEvent): void => {
+      if (e.key === "Enter" && isFinished() && getRemainingSeconds() > 0) {
+        e.preventDefault();
+        handleStartNextAttempt();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    onCleanup(() => {
+      window.removeEventListener("keydown", handleKeyDown);
+    });
   });
 
   const handleArenaClick = (): void => {
@@ -116,14 +141,24 @@ export function RaceTypingArena(props: RaceTypingArenaProps): JSXElement {
     props.onComplete?.(finalWpm, finalAcc, elapsedSec);
   };
 
+  const handleStartNextAttempt = (): void => {
+    sendNextAttempt();
+    setTyped("");
+    setMistakes(0);
+    setTotalKeys(0);
+    setLiveWpm(0);
+    setLiveAccuracy(100);
+    setStartTime(Date.now());
+    setIsFinished(false);
+    setTimeout(() => {
+      inputRef?.focus();
+    }, 50);
+  };
+
   createEffect(() => {
     if (getRemainingSeconds() <= 0 && !isFinished()) {
       completeTest(liveWpm(), liveAccuracy());
     }
-  });
-
-  onCleanup(() => {
-    // cleanup
   });
 
   return (
@@ -155,12 +190,29 @@ export function RaceTypingArena(props: RaceTypingArenaProps): JSXElement {
               </span>
             </div>
           </div>
+
+          <Show when={(myParticipant()?.attemptsCount ?? 0) > 0}>
+            <div class="h-8 w-px bg-sub/20"></div>
+            <div class="flex flex-col">
+              <span class="text-xs tracking-wider text-main uppercase">
+                Best WPM
+              </span>
+              <div class="flex items-baseline gap-1">
+                <span class="font-mono text-2xl font-black text-main">
+                  {myParticipant()?.bestWpm ?? liveWpm()}
+                </span>
+                <span class="text-[10px] text-sub">
+                  (Putaran {myParticipant()?.attemptsCount ?? 1})
+                </span>
+              </div>
+            </div>
+          </Show>
         </div>
 
         {/* Center: Live Smooth Progress Bar */}
         <div class="flex min-w-[150px] flex-1 flex-col items-center gap-1.5 px-4">
           <div class="flex w-full justify-between text-xs text-sub">
-            <span>Kemajuan Mengetik</span>
+            <span>Kemajuan Paragraf</span>
             <span class="font-mono font-bold text-main">
               {progressPercent()}%
             </span>
@@ -173,7 +225,7 @@ export function RaceTypingArena(props: RaceTypingArenaProps): JSXElement {
           </div>
         </div>
 
-        {/* Right: 60s Countdown Timer */}
+        {/* Right: Sisa Waktu Kompetisi */}
         <div class="flex items-center gap-3">
           <div class="flex flex-col items-end">
             <span class="text-xs tracking-wider text-sub uppercase">
@@ -194,62 +246,115 @@ export function RaceTypingArena(props: RaceTypingArenaProps): JSXElement {
         </div>
       </div>
 
-      {/* Main Typing Container */}
-      <div class="relative min-h-[160px] cursor-text rounded-double border border-sub/20 bg-bg/90 p-8 shadow-inner transition-all hover:border-sub/40">
-        <input
-          ref={(el) => (inputRef = el)}
-          type="text"
-          class="pointer-events-auto absolute inset-0 h-full w-full cursor-text opacity-0"
-          value={typed()}
-          onInput={handleInput}
-          autocomplete="off"
-          // oxlint-disable-next-line react/no-unknown-property
-          autocapitalize="off"
-          // oxlint-disable-next-line react/no-unknown-property
-          spellcheck={false}
-          disabled={isFinished()}
-        />
+      {/* Main Typing Container or Multi-attempt Banner */}
+      <Show
+        when={!isFinished() || getRemainingSeconds() <= 0}
+        fallback={
+          <div class="flex flex-col items-center gap-5 rounded-double border-2 border-main/50 bg-sub-alt/90 p-8 text-center shadow-2xl backdrop-blur-md">
+            <div class="flex h-14 w-14 items-center justify-center rounded-full bg-main/20 text-2xl text-main shadow-[0_0_20px_var(--main-color)]">
+              <Fa icon="fa-check-circle" />
+            </div>
 
-        <div class="relative font-mono text-2xl leading-relaxed tracking-wide select-none">
-          <Index each={targetText().split("")}>
-            {(char, index) => {
-              const isTyped = () => index < typed().length;
-              const isCurrent = () => index === typed().length;
-              const isCorrect = () => isTyped() && typed()[index] === char();
-              const isError = () => isTyped() && !isCorrect();
-
-              return (
-                <span
-                  class={cn("relative transition-colors duration-75", {
-                    "font-medium text-text": isCorrect(),
-                    "rounded-xs bg-error/20 px-0.5 text-error": isError(),
-                    "text-sub opacity-50": !isTyped() && !isCurrent(),
-                    "font-semibold text-main": isCurrent(),
-                  })}
-                >
-                  <Show when={isCurrent() && !isFinished()}>
-                    <span class="absolute top-[10%] -left-[2px] h-[80%] w-[3px] animate-pulse rounded-full bg-caret shadow-[0_0_8px_var(--caret-color)]"></span>
-                  </Show>
-                  {char()}
+            <div>
+              <h3 class="text-2xl font-black text-text">
+                Putaran Ini Berhasil Diselesaikan!
+              </h3>
+              <p class="mt-1 text-sm text-sub">
+                Waktu kompetisi masih tersisa{" "}
+                <span class="font-mono font-bold text-main">
+                  {getRemainingSeconds()} detik
                 </span>
-              );
-            }}
-          </Index>
-        </div>
+                . Anda bisa mengetik lagi untuk melampaui skor sebelumnya!
+              </p>
+            </div>
 
-        <Show when={getPassageAuthor().length > 0}>
-          <div class="mt-6 flex items-center justify-end gap-2 text-sm text-sub italic">
-            <span>—</span>
-            <span>{getPassageAuthor()}</span>
+            <div class="rounded-radius flex items-center justify-center gap-8 border border-sub/20 bg-bg/80 px-6 py-4">
+              <div class="flex flex-col items-center">
+                <span class="text-xs text-sub uppercase">Putaran Barusan</span>
+                <span class="font-mono text-3xl font-extrabold text-text">
+                  {liveWpm()}
+                </span>
+                <span class="text-xs text-sub">{liveAccuracy()}% Akurasi</span>
+              </div>
+              <div class="h-10 w-px bg-sub/30"></div>
+              <div class="flex flex-col items-center">
+                <span class="text-xs font-bold text-main uppercase">
+                  Skor Tertinggi (Best WPM)
+                </span>
+                <span class="font-mono text-4xl font-black text-main">
+                  {myParticipant()?.bestWpm ?? liveWpm()}
+                </span>
+                <span class="text-xs text-sub">Dicatat di Papan Peringkat</span>
+              </div>
+            </div>
+
+            <Button
+              variant="text"
+              class="rounded-radius flex items-center gap-2 bg-main px-8 py-3.5 text-base font-bold text-bg shadow-[0_4px_16px_var(--main-color)] transition-all hover:brightness-110 active:scale-95"
+              onClick={handleStartNextAttempt}
+            >
+              <Fa icon="fa-redo-alt" />
+              <span>Ketik Putaran Berikutnya (Enter)</span>
+            </Button>
           </div>
-        </Show>
-      </div>
+        }
+      >
+        <div class="relative min-h-[160px] cursor-text rounded-double border border-sub/20 bg-bg/90 p-8 shadow-inner transition-all hover:border-sub/40">
+          <input
+            ref={(el) => (inputRef = el)}
+            type="text"
+            class="pointer-events-auto absolute inset-0 h-full w-full cursor-text opacity-0"
+            value={typed()}
+            onInput={handleInput}
+            autocomplete="off"
+            // oxlint-disable-next-line react/no-unknown-property
+            autocapitalize="off"
+            // oxlint-disable-next-line react/no-unknown-property
+            spellcheck={false}
+            disabled={isFinished()}
+          />
+
+          <div class="relative font-mono text-2xl leading-relaxed tracking-wide select-none">
+            <Index each={targetText().split("")}>
+              {(char, index) => {
+                const isTyped = () => index < typed().length;
+                const isCurrent = () => index === typed().length;
+                const isCorrect = () => isTyped() && typed()[index] === char();
+                const isError = () => isTyped() && !isCorrect();
+
+                return (
+                  <span
+                    class={cn("relative transition-colors duration-75", {
+                      "font-medium text-text": isCorrect(),
+                      "rounded-xs bg-error/20 px-0.5 text-error": isError(),
+                      "text-sub opacity-50": !isTyped() && !isCurrent(),
+                      "font-semibold text-main": isCurrent(),
+                    })}
+                  >
+                    <Show when={isCurrent() && !isFinished()}>
+                      <span class="absolute top-[10%] -left-[2px] h-[80%] w-[3px] animate-pulse rounded-full bg-caret shadow-[0_0_8px_var(--caret-color)]"></span>
+                    </Show>
+                    {char()}
+                  </span>
+                );
+              }}
+            </Index>
+          </div>
+
+          <Show when={getPassageAuthor().length > 0}>
+            <div class="mt-6 flex items-center justify-end gap-2 text-sm text-sub italic">
+              <span>—</span>
+              <span>{getPassageAuthor()}</span>
+            </div>
+          </Show>
+        </div>
+      </Show>
 
       <div class="flex items-center justify-center gap-2 text-xs text-sub">
         <Fa icon="fa-keyboard" class="opacity-70" />
         <span>
           Ketik paragraf di atas secepat dan seakurat mungkin. Posisi balapan
-          Anda diupdate secara live!
+          dan WPM terbaik Anda terupdate secara live!
         </span>
       </div>
     </div>

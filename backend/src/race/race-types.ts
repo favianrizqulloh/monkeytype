@@ -9,6 +9,9 @@ export type RaceParticipant = {
   finishTime?: number; // timestamp in ms when finished
   durationSeconds?: number;
   rank?: number;
+  bestWpm: number; // highest WPM achieved in this session
+  bestAccuracy: number; // accuracy of the best attempt
+  attemptsCount: number; // how many times the student completed a passage
 };
 
 export type RaceSessionStatus = "lobby" | "countdown" | "racing" | "finished";
@@ -30,6 +33,7 @@ export type ClientJoinMessage = {
   sessionId: string;
   name: string;
   isTeacher: boolean;
+  durationSeconds?: number;
 };
 
 export type ClientProgressMessage = {
@@ -46,20 +50,27 @@ export type ClientFinishMessage = {
   durationSeconds: number;
 };
 
+export type ClientNextAttemptMessage = {
+  action: "next_attempt";
+};
+
 export type ClientStartRaceMessage = {
   action: "start_race";
   countdownSeconds?: number;
+  durationSeconds?: number;
 };
 
 export type ClientResetRaceMessage = {
   action: "reset_race";
   customText?: string;
+  durationSeconds?: number;
 };
 
 export type ClientMessage =
   | ClientJoinMessage
   | ClientProgressMessage
   | ClientFinishMessage
+  | ClientNextAttemptMessage
   | ClientStartRaceMessage
   | ClientResetRaceMessage;
 

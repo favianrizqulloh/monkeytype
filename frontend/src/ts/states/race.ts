@@ -12,6 +12,9 @@ export type RaceParticipantState = {
   finishTime?: number;
   durationSeconds?: number;
   rank?: number;
+  bestWpm?: number;
+  bestAccuracy?: number;
+  attemptsCount?: number;
 };
 
 export type RaceStatus = "idle" | "lobby" | "countdown" | "racing" | "finished";
@@ -25,8 +28,10 @@ export const [getPassageText, setPassageText] = createSignal<string>("");
 export const [getPassageAuthor, setPassageAuthor] = createSignal<string>("");
 export const [getCountdownSeconds, setCountdownSeconds] =
   createSignal<number>(3);
+export const [getSessionDuration, setSessionDuration] =
+  createSignal<number>(180);
 export const [getRemainingSeconds, setRemainingSeconds] =
-  createSignal<number>(60);
+  createSignal<number>(180);
 export const [getIsTeacher, setIsTeacher] = createSignal<boolean>(false);
 
 export const [participants, setParticipants] = createStore<
@@ -41,7 +46,7 @@ export function resetRaceState(): void {
   setPassageText("");
   setPassageAuthor("");
   setCountdownSeconds(3);
-  setRemainingSeconds(60);
+  setRemainingSeconds(getSessionDuration());
   setParticipants([]);
   setLeaderboard([]);
 }
@@ -54,12 +59,19 @@ export function updateParticipantProgress(
 ): void {
   setParticipants(
     (p) => p.id === id,
-    (prev) => ({
-      ...prev,
-      progress,
-      wpm,
-      accuracy,
-    }),
+    (prev) => {
+      const bestWpm = Math.max(prev.bestWpm ?? 0, wpm);
+      const bestAccuracy =
+        wpm >= (prev.bestWpm ?? 0) ? accuracy : (prev.bestAccuracy ?? 100);
+      return {
+        ...prev,
+        progress,
+        wpm,
+        accuracy,
+        bestWpm,
+        bestAccuracy,
+      };
+    },
   );
 }
 
