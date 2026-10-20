@@ -89,13 +89,31 @@ export type ClientResetRaceMessage = {
   numbers?: boolean;
 };
 
+export type ClientListSessionsMessage = {
+  action: "list_sessions";
+};
+
+export type ActiveSessionSummary = {
+  sessionId: string;
+  status: RaceSessionStatus;
+  participantCount: number;
+  durationSeconds: number;
+  mode?: "time" | "words" | "quote" | "custom";
+  modeValue?: number;
+  language?: "indonesian" | "english";
+  punctuation?: boolean;
+  numbers?: boolean;
+  createdAt: number;
+};
+
 export type ClientMessage =
   | ClientJoinMessage
   | ClientProgressMessage
   | ClientFinishMessage
   | ClientNextAttemptMessage
   | ClientStartRaceMessage
-  | ClientResetRaceMessage;
+  | ClientResetRaceMessage
+  | ClientListSessionsMessage;
 
 export type SerializedSession = {
   id: string;
@@ -172,6 +190,11 @@ export type ServerTimerSyncMessage = {
   remainingSeconds: number;
 };
 
+export type ServerSessionsListMessage = {
+  event: "sessions_list";
+  sessions: ActiveSessionSummary[];
+};
+
 export type ServerMessage =
   | ServerRoomStateMessage
   | ServerParticipantJoinedMessage
@@ -182,4 +205,5 @@ export type ServerMessage =
   | ServerParticipantFinishedMessage
   | ServerRaceFinishedMessage
   | ServerRaceResetMessage
-  | ServerTimerSyncMessage;
+  | ServerTimerSyncMessage
+  | ServerSessionsListMessage;

@@ -9,10 +9,14 @@ Aplikasi perlombaan mengetik cepat (*typing speed competition*) berbasis web yan
 ## Fitur Utama
 
 - **Pilihan Mode di Halaman Utama (`/`)**:
-  - Saat membuka halaman utama, pengguna langsung disuguhkan pilihan:
-    - **Mode Latihan Mandiri (Solo WPM Test)**: Mengetik sendiri seperti Monkeytype standar.
-    - **Mode Kompetisi / Multiplayer (Buka Sesi Lomba)**: Langsung diarahkan ke `/result` untuk membuka ruang lomba proyektor.
+  - Saat membuka halaman utama, pengguna langsung disuguhkan 3 pilihan jelas:
+    - **Mode Latihan Mandiri (Solo WPM Test)**: Mengetik mandiri seperti Monkeytype standar.
+    - **Ikut / Gabung Lomba (Pilih Sesi)**: Membuka browser sesi terbuka (`/race`) untuk langsung memilih lomba aktif kelas.
+    - **Buka Sesi Lomba (Host / Guru)**: Membuka sesi baru di `/result` untuk diproyeksikan ke layar kelas.
   - Terdapat tombol pintas `🏆 Live Competition` pada bilah navigasi atas.
+- **Browser Sesi Terbuka & 1-Click Join (`/race`)**:
+  - Siswa dapat melihat daftar seluruh sesi lomba yang sedang dibuka oleh guru secara langsung lengkap dengan kode `#ID`, status (Menunggu/Lomba), durasi/mode, dan jumlah siswa yang telah bergabung.
+  - Cukup klik salah satu sesi untuk mengisi kode otomatis tanpa perlu mengetik kode manual.
 - **Pengaturan Tingkat Mode & Kesulitan Lengkap (`/result`)**:
   - **Pilihan Mode**:
     - `time`: Durasi 15s, 30s, 60s, 120s, atau **180s (3 menit default)**.
@@ -74,10 +78,11 @@ Aplikasi perlombaan mengetik cepat (*typing speed competition*) berbasis web yan
    - Buka browser di komputer Anda dan akses:
      ```text
      http://<ip-komputer-guru>:3002/race
-     (atau link yang dibagikan guru)
+     (atau klik tombol "Ikut / Gabung Lomba" di halaman utama)
      ```
-   - Masukkan **Nama Lengkap** Anda dan **Kode Sesi** yang ditampilkan di layar proyektor guru.
-   - Klik **Gabung Lomba**.
+   - **Pilih Sesi Terbuka**: Di kolom kiri daftar "Sesi Lomba Terbuka", klik sesi kelas yang dibuka guru (kode sesi akan otomatis terisi). Atau ketik **Kode Sesi** secara manual jika diinginkan.
+   - Masukkan **Nama Lengkap Siswa**.
+   - Klik **Masuk Arena Lomba**.
 2. **Menunggu di Lobi & Hitungan Mundur**:
    - Tunggu hingga guru menekan tombol mulai lomba.
    - Saat hitungan mundur 3... 2... 1... muncul, bersiaplah di tombol *home row* keyboard (ASDF JKL;).
@@ -252,7 +257,7 @@ server {
         proxy_send_timeout 86400s;
     }
 
-    location ~ ^/(configuration|health) {
+    location ~ ^/(configuration|health|api) {
         proxy_pass http://typingtest_backend;
         proxy_http_version 1.1;
         proxy_set_header Host $host;

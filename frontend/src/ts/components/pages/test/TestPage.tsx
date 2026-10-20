@@ -187,11 +187,20 @@ export function TestPage(): JSXElement {
 
           <button
             type="button"
-            class="rounded-radius flex items-center gap-2 border-2 border-main bg-main/15 px-4 py-2 text-xs font-black text-main shadow-[0_2px_12px_var(--main-color)] transition-all hover:bg-main hover:text-bg active:scale-95"
+            class="rounded-radius flex items-center gap-2 border-2 border-main/50 bg-main/10 px-4 py-2 text-xs font-black text-text shadow-sm transition-all hover:bg-main hover:text-bg active:scale-95"
+            onClick={() => void navigate("/race")}
+          >
+            <Fa icon="fa-flag-checkered" class="text-main" />
+            <span>Ikut / Gabung Lomba (Pilih Sesi)</span>
+          </button>
+
+          <button
+            type="button"
+            class="rounded-radius flex items-center gap-2 border-2 border-main bg-main/20 px-4 py-2 text-xs font-black text-main shadow-[0_2px_12px_var(--main-color)] transition-all hover:bg-main hover:text-bg active:scale-95"
             onClick={() => void navigate("/result")}
           >
             <Fa icon="fa-trophy" />
-            <span>Mode Kompetisi / Multiplayer (Buka Sesi Lomba) 🚀</span>
+            <span>Buka Sesi Lomba (Host / Guru) 🚀</span>
           </button>
         </div>
         <TestConfig />

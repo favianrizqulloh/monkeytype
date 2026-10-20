@@ -352,3 +352,78 @@ export function disconnectRaceSocket(): void {
     socket = null;
   }
 }
+
+export type ActiveSessionSummary = {
+  sessionId: string;
+  status: "lobby" | "countdown" | "racing" | "finished";
+  participantCount: number;
+  durationSeconds: number;
+  mode?: "time" | "words" | "quote" | "custom";
+  modeValue?: number;
+  language?: "indonesian" | "english";
+  punctuation?: boolean;
+  numbers?: boolean;
+  createdAt: number;
+};
+
+export async function fetchActiveSessions(): Promise<ActiveSessionSummary[]> {
+  try {
+    const res = await fetch("/api/race/sessions", { cache: "no-store" });
+    if (res.ok) {
+      const data = (await res.json()) as { sessions: ActiveSessionSummary[] };
+      if (Array.isArray(data.sessions)) {
+        return data.sessions;
+      }
+    }
+  } catch (err) {
+    console.warn("fetch /api/race/sessions failed, trying WS fallback:", err);
+  }
+
+  // Fallback via WebSocket
+  return new Promise<ActiveSessionSummary[]>((resolve) => {
+    try {
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const wsUrl = `${protocol}//${window.location.host}/ws/race`;
+      const tempWs = new WebSocket(wsUrl);
+
+      const timer = setTimeout(() => {
+        try {
+          tempWs.close();
+        } catch {}
+        resolve([]);
+      }, 2500);
+
+      tempWs.onopen = () => {
+        tempWs.send(JSON.stringify({ action: "list_sessions" }));
+      };
+
+      tempWs.onmessage = (event: MessageEvent<string>) => {
+        try {
+          const msg = JSON.parse(event.data) as {
+            event?: string;
+            sessions?: ActiveSessionSummary[];
+          };
+          if (msg.event === "sessions_list" && Array.isArray(msg.sessions)) {
+            clearTimeout(timer);
+            try {
+              tempWs.close();
+            } catch {}
+            resolve(msg.sessions);
+          }
+        } catch {
+          // ignore
+        }
+      };
+
+      tempWs.onerror = () => {
+        clearTimeout(timer);
+        try {
+          tempWs.close();
+        } catch {}
+        resolve([]);
+      };
+    } catch {
+      resolve([]);
+    }
+  });
+}

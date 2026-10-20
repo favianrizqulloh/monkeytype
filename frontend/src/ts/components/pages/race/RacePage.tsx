@@ -9,7 +9,13 @@ import {
   Show,
 } from "solid-js";
 
-import { disconnectRaceSocket, joinRoom } from "../../../services/race-socket";
+import { navigate } from "../../../controllers/route-controller";
+import {
+  ActiveSessionSummary,
+  disconnectRaceSocket,
+  fetchActiveSessions,
+  joinRoom,
+} from "../../../services/race-socket";
 import {
   getCountdownSeconds,
   getMyName,
@@ -33,13 +39,31 @@ export function RacePage(): JSXElement {
   const [inputName, setInputName] = createSignal("");
   const [inputSession, setInputSession] = createSignal("");
   const [hasJoined, setHasJoined] = createSignal(false);
+  const [activeSessions, setActiveSessions] = createSignal<
+    ActiveSessionSummary[]
+  >([]);
+  const [isLoadingSessions, setIsLoadingSessions] = createSignal(false);
   const [finalResult, setFinalResult] = createSignal<{
     wpm: number;
     accuracy: number;
     timeSec: number;
   } | null>(null);
 
+  const loadSessions = async (): Promise<void> => {
+    setIsLoadingSessions(true);
+    try {
+      const list = await fetchActiveSessions();
+      setActiveSessions(list);
+    } catch {
+      setActiveSessions([]);
+    } finally {
+      setIsLoadingSessions(false);
+    }
+  };
+
   onMount(() => {
+    void loadSessions();
+
     // Check if session ID was provided via pathname or query param
     const pathParts = window.location.pathname
       .split("/")
@@ -103,84 +127,212 @@ export function RacePage(): JSXElement {
 
   return (
     <div class="mx-auto flex w-full max-w-4xl flex-col items-center justify-center py-8">
-      {/* State 1: Join Form (Nama Lengkap & Kode Sesi) */}
+      {/* State 1: Active Sessions Browser & Join Form */}
       <Show when={!hasJoined()}>
-        <div class="flex w-full max-w-md flex-col gap-6 rounded-double border border-sub/20 bg-sub-alt/30 p-8 shadow-xl backdrop-blur-md">
+        <div class="flex w-full flex-col gap-6">
           <div class="flex flex-col items-center text-center">
             <div class="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-main/10 text-main shadow-[0_0_20px_var(--main-color)]">
               <Fa icon="fa-flag-checkered" size={1.75} />
             </div>
-            <h1 class="text-2xl font-black tracking-tight text-text">
+            <h1 class="text-3xl font-black tracking-tight text-text">
               TypingTest Arena
             </h1>
             <p class="mt-1 text-sm text-sub">
-              Kompetisi Mengetik Cepat Kelas Komputer
+              Kompetisi Mengetik Cepat Kelas Komputer & Multiplayer
             </p>
           </div>
 
-          <form onSubmit={handleJoin} class="flex flex-col gap-4">
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-semibold tracking-wider text-sub uppercase">
-                Nama Lengkap Siswa
-              </label>
-              <input
-                ref={(el) => (nameInputRef = el)}
-                type="text"
-                placeholder="Contoh: Budi Santoso"
-                class="rounded-radius w-full border border-sub/30 bg-bg px-4 py-3 text-base text-text transition-all outline-none placeholder:text-sub/50 focus:border-main focus:ring-2 focus:ring-main/20"
-                value={inputName()}
-                onInput={(e) => setInputName(e.currentTarget.value)}
-                required
-              />
+          <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+            {/* Left: Active Sessions Browser */}
+            <div class="flex flex-col gap-4 rounded-double border border-sub/20 bg-sub-alt/30 p-6 shadow-xl backdrop-blur-md">
+              <div class="flex items-center justify-between border-b border-sub/20 pb-3">
+                <div class="flex items-center gap-2">
+                  <Fa icon="fa-list-ul" class="text-main" />
+                  <span class="font-bold text-text">Sesi Lomba Terbuka</span>
+                  <span class="rounded-full bg-main/20 px-2 py-0.5 text-xs font-bold text-main">
+                    {activeSessions().length}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  title="Segarkan daftar sesi"
+                  class="rounded-radius flex items-center gap-1.5 px-2.5 py-1 text-xs text-sub transition-all hover:bg-sub/20 hover:text-text"
+                  onClick={() => void loadSessions()}
+                  disabled={isLoadingSessions()}
+                >
+                  <Fa
+                    icon="fa-sync-alt"
+                    class={isLoadingSessions() ? "animate-spin text-main" : ""}
+                  />
+                  <span>Segarkan</span>
+                </button>
+              </div>
+
+              <div class="flex max-h-80 flex-col gap-2.5 overflow-y-auto pr-1">
+                <Show
+                  when={activeSessions().length > 0}
+                  fallback={
+                    <div class="flex flex-col items-center justify-center gap-2 py-10 text-center text-sub">
+                      <Fa icon="fa-inbox" size={2} class="opacity-40" />
+                      <p class="text-xs">
+                        Belum ada sesi lomba yang aktif saat ini.
+                      </p>
+                      <p class="text-[11px] text-sub/70">
+                        Guru dapat membuat sesi di halaman proyektor, atau Anda
+                        dapat memasukkan kode manual di samping.
+                      </p>
+                    </div>
+                  }
+                >
+                  <For each={activeSessions()}>
+                    {(session) => {
+                      const isSelected = () =>
+                        inputSession().trim() === session.sessionId;
+                      return (
+                        <div
+                          class={cn(
+                            "rounded-radius flex cursor-pointer flex-col gap-1.5 border p-3 transition-all",
+                            isSelected()
+                              ? "border-main bg-main/15 shadow-[0_0_12px_var(--main-color)]"
+                              : "border-sub/20 bg-bg/60 hover:border-main/50 hover:bg-sub-alt/40",
+                          )}
+                          onClick={() => {
+                            setInputSession(session.sessionId);
+                            if (!inputName() && nameInputRef) {
+                              nameInputRef.focus();
+                            }
+                          }}
+                        >
+                          <div class="flex items-center justify-between">
+                            <span class="font-mono text-base font-black tracking-wide text-text">
+                              #{session.sessionId}
+                            </span>
+                            <span
+                              class={cn(
+                                "rounded-sm px-2 py-0.5 text-[10px] font-bold uppercase",
+                                session.status === "lobby"
+                                  ? "bg-main/20 text-main"
+                                  : session.status === "racing"
+                                    ? "bg-yellow-500/20 text-yellow-400"
+                                    : "bg-sub/20 text-sub",
+                              )}
+                            >
+                              {session.status === "lobby"
+                                ? "Menunggu Peserta"
+                                : session.status === "racing"
+                                  ? "Sedang Lomba"
+                                  : "Selesai"}
+                            </span>
+                          </div>
+
+                          <div class="flex flex-wrap items-center gap-2 text-xs text-sub">
+                            <span class="flex items-center gap-1">
+                              <Fa icon="fa-clock" class="text-[10px]" />
+                              {session.durationSeconds}s
+                            </span>
+                            <span>•</span>
+                            <span class="flex items-center gap-1">
+                              <Fa icon="fa-sliders-h" class="text-[10px]" />
+                              {session.mode ?? "time"}
+                            </span>
+                            <span>•</span>
+                            <span class="flex items-center gap-1">
+                              <Fa icon="fa-users" class="text-[10px]" />
+                              {session.participantCount} peserta
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    }}
+                  </For>
+                </Show>
+              </div>
+
+              <div class="mt-auto border-t border-sub/10 pt-3">
+                <button
+                  type="button"
+                  class="rounded-radius flex w-full items-center justify-center gap-2 border border-main/40 bg-main/10 py-2.5 text-xs font-bold text-main transition-all hover:bg-main hover:text-bg"
+                  onClick={() => void navigate("/result")}
+                >
+                  <Fa icon="fa-trophy" />
+                  <span>Buka Sesi Baru (Host / Guru)</span>
+                </button>
+              </div>
             </div>
 
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-semibold tracking-wider text-sub uppercase">
-                Kode / ID Sesi Lomba
-              </label>
-              <input
-                type="text"
-                placeholder="Contoh: 908235"
-                class="rounded-radius w-full border border-sub/30 bg-bg px-4 py-3 font-mono text-base font-semibold tracking-widest text-text uppercase transition-all outline-none placeholder:text-sub/50 focus:border-main focus:ring-2 focus:ring-main/20"
-                value={inputSession()}
-                onInput={(e) => setInputSession(e.currentTarget.value)}
-                required
-              />
-            </div>
+            {/* Right: Join Form */}
+            <div class="flex flex-col gap-5 rounded-double border border-sub/20 bg-sub-alt/30 p-6 shadow-xl backdrop-blur-md">
+              <div class="border-b border-sub/20 pb-3">
+                <span class="font-bold text-text">Formulir Gabung Lomba</span>
+                <p class="text-xs text-sub">
+                  Pilih sesi dari daftar atau ketik kode lomba langsung.
+                </p>
+              </div>
 
-            <Button
-              type="submit"
-              variant="text"
-              class="rounded-radius mt-2 flex w-full items-center justify-center gap-2 bg-main py-3.5 font-bold text-bg shadow-[0_4px_16px_var(--main-color)] transition-all hover:brightness-110 active:scale-[0.98]"
-            >
-              <Fa icon="fa-sign-in-alt" />
-              <span>Gabung Lomba</span>
-            </Button>
-          </form>
+              <form onSubmit={handleJoin} class="flex flex-col gap-4">
+                <div class="flex flex-col gap-1.5">
+                  <label class="text-xs font-semibold tracking-wider text-sub uppercase">
+                    Nama Lengkap Siswa
+                  </label>
+                  <input
+                    ref={(el) => (nameInputRef = el)}
+                    type="text"
+                    placeholder="Contoh: Budi Santoso"
+                    class="rounded-radius w-full border border-sub/30 bg-bg px-4 py-3 text-base text-text transition-all outline-none placeholder:text-sub/50 focus:border-main focus:ring-2 focus:ring-main/20"
+                    value={inputName()}
+                    onInput={(e) => setInputName(e.currentTarget.value)}
+                    required
+                  />
+                </div>
 
-          {/* Card Petunjuk Siswa */}
-          <div class="rounded-radius flex flex-col gap-2 border border-sub/20 bg-sub-alt/40 p-4 text-xs text-sub">
-            <div class="flex items-center gap-2 font-bold text-text">
-              <Fa icon="fa-info-circle" class="text-main" />
-              <span>Aturan & Petunjuk Lomba untuk Siswa:</span>
+                <div class="flex flex-col gap-1.5">
+                  <label class="text-xs font-semibold tracking-wider text-sub uppercase">
+                    Kode / ID Sesi Lomba
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: 908235"
+                    class="rounded-radius w-full border border-sub/30 bg-bg px-4 py-3 font-mono text-base font-semibold tracking-widest text-text uppercase transition-all outline-none placeholder:text-sub/50 focus:border-main focus:ring-2 focus:ring-main/20"
+                    value={inputSession()}
+                    onInput={(e) => setInputSession(e.currentTarget.value)}
+                    required
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  variant="text"
+                  class="rounded-radius mt-2 flex w-full items-center justify-center gap-2 bg-main py-3.5 font-bold text-bg shadow-[0_4px_16px_var(--main-color)] transition-all hover:brightness-110 active:scale-[0.98]"
+                >
+                  <Fa icon="fa-sign-in-alt" />
+                  <span>Masuk Arena Lomba</span>
+                </Button>
+              </form>
+
+              {/* Card Petunjuk Siswa */}
+              <div class="rounded-radius flex flex-col gap-2 border border-sub/20 bg-sub-alt/40 p-3.5 text-xs text-sub">
+                <div class="flex items-center gap-2 font-bold text-text">
+                  <Fa icon="fa-info-circle" class="text-main" />
+                  <span>Petunjuk Lomba:</span>
+                </div>
+                <ul class="list-inside list-disc space-y-1 pl-1 text-sub">
+                  <li>Lomba berlangsung serentak sesuai durasi sesi.</li>
+                  <li>
+                    Selesai paragraf duluan? Tekan <b>Enter</b> untuk ronde
+                    berikutnya.
+                  </li>
+                  <li>
+                    Papan juara menghitung{" "}
+                    <b class="text-main">WPM Tertinggi (Best Score)</b> Anda!
+                  </li>
+                </ul>
+              </div>
+
+              <p class="text-center text-[11px] text-sub/70">
+                Murni untuk kelas belajar komputer. Tanpa login email atau SSO.
+              </p>
             </div>
-            <ul class="list-inside list-disc space-y-1.5 pl-1 text-sub">
-              <li>Durasi lomba berlangsung selama 3 menit secara serentak.</li>
-              <li>
-                Jika Anda menyelesaikan paragraf sebelum waktu habis, langsung
-                tekan <b>Enter</b> untuk mengetik putaran berikutnya.
-              </li>
-              <li>
-                Skor yang diperhitungkan di papan juara adalah{" "}
-                <b class="text-main">WPM Tertinggi (Best Score)</b> yang Anda
-                raih!
-              </li>
-            </ul>
           </div>
-
-          <p class="text-center text-xs text-sub">
-            Murni untuk kelas belajar komputer. Tanpa login email atau SSO.
-          </p>
         </div>
       </Show>
 

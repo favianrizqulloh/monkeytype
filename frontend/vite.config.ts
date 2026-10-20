@@ -358,6 +358,9 @@ export default defineConfig(({ mode }): UserConfig => {
           target: "ws://localhost:5005",
           ws: true,
         },
+        "/api/race": {
+          target: "http://localhost:5005",
+        },
       },
       watch: {
         //we rebuild the whole contracts package when a file changes

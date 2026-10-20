@@ -1,5 +1,10 @@
 import { generatePassage, PassageOptions } from "./passage-generator";
-import { RaceParticipant, RaceSession, SerializedSession } from "./race-types";
+import {
+  ActiveSessionSummary,
+  RaceParticipant,
+  RaceSession,
+  SerializedSession,
+} from "./race-types";
 
 export class RaceManager {
   private sessions = new Map<string, RaceSession>();
@@ -61,6 +66,30 @@ export class RaceManager {
 
     this.sessions.set(sessionId, session);
     return session;
+  }
+
+  public getActiveSessionsList(): ActiveSessionSummary[] {
+    const list: ActiveSessionSummary[] = [];
+    for (const session of this.sessions.values()) {
+      const studentCount = Array.from(session.participants.values()).filter(
+        (p) => !p.isTeacher,
+      ).length;
+
+      list.push({
+        sessionId: session.id,
+        status: session.status,
+        participantCount: studentCount,
+        durationSeconds: session.durationSeconds,
+        mode: session.mode,
+        modeValue: session.modeValue,
+        language: session.language,
+        punctuation: session.punctuation,
+        numbers: session.numbers,
+        createdAt: session.createdAt,
+      });
+    }
+
+    return list.sort((a, b) => b.createdAt - a.createdAt);
   }
 
   public getSession(sessionId: string): RaceSession | undefined {

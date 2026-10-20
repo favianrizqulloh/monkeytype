@@ -38,6 +38,16 @@ export function initRaceWebSocket(server: HttpServer): WebSocketServer {
         const msg = JSON.parse(raw.toString()) as ClientMessage;
 
         switch (msg.action) {
+          case "list_sessions": {
+            const sessions = raceManager.getActiveSessionsList();
+            const response: ServerMessage = {
+              event: "sessions_list",
+              sessions,
+            };
+            ws.send(JSON.stringify(response));
+            break;
+          }
+
           case "join": {
             const sessionId = msg.sessionId.trim();
             const participantId = `p_${Math.random().toString(36).substring(2, 9)}`;

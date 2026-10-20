@@ -9,10 +9,14 @@ A web-based typing speed competition application combining the modern aesthetics
 ## Key Features
 
 - **Homepage Mode Switcher (`/`)**:
-  - Visiting the homepage offers immediate choices:
+  - Visiting the homepage offers 3 immediate choices:
     - **Solo Practice Mode (Solo WPM Test)**: Classic single-player Monkeytype practice.
-    - **Live Competition Mode (Open Race Session)**: Directs users straight to `/result` to create or host a competition room.
+    - **Join Competition (Browse Open Sessions)**: Directs users to `/race` to pick an active session with 1 click.
+    - **Host Competition Room (Host / Teacher)**: Directs users to `/result` to create or host a new classroom race.
   - Quick action shortcut `🏆 Live Competition` in the top navigation bar.
+- **Active Competition Browser & 1-Click Join (`/race`)**:
+  - Students can browse all currently active competition sessions hosted by teachers, showing `#ID`, status (Waiting/Racing), duration/mode, and joined student count.
+  - Clicking any session auto-populates the session code without needing manual typing.
 - **Full Monkeytype-Style Difficulty & Mode Selector (`/result`)**:
   - **Modes**:
     - `time`: 15s, 30s, 60s, 120s, or **180s (3-minute default)**.
@@ -71,9 +75,10 @@ A web-based typing speed competition application combining the modern aesthetics
 
 ### B. For Students
 1. **Join the Competition**:
-   - Navigate to `http://<teacher-ip>:3002/race` on your device.
-   - Enter your **Full Name** and the **Session ID** shown on the projector.
-   - Click **Join Race**.
+   - Navigate to `http://<teacher-ip>:3002/race` on your device (or click **Ikut / Gabung Lomba** on the homepage).
+   - **Pick Open Session**: Click the class session from the "Sesi Lomba Terbuka" list on the left to auto-fill the session code, or enter the **Session ID** manually.
+   - Enter your **Full Name**.
+   - Click **Masuk Arena Lomba (Join Race)**.
 2. **Wait in Lobby & Countdown**:
    - Wait for the teacher to start the race.
    - When the countdown begins (3... 2... 1...), position your fingers on the *home row* keys (ASDF JKL;).

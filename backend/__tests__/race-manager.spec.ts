@@ -112,4 +112,35 @@ describe("RaceManager", () => {
     });
     expect(wordsSession.text.split(" ").length).toBe(15);
   });
+
+  it("returns active sessions list with participant count and configuration", () => {
+    manager.getOrCreateSession("session_a", {
+      durationSeconds: 120,
+      language: "indonesian",
+    });
+    manager.joinParticipant("session_a", "p1", "Siswa A", false);
+    manager.joinParticipant("session_a", "t1", "Guru A", true);
+
+    manager.getOrCreateSession("session_b", {
+      durationSeconds: 60,
+      mode: "words",
+      modeValue: 25,
+      language: "english",
+    });
+
+    const list = manager.getActiveSessionsList();
+    expect(list.length).toBe(2);
+
+    const sA = list.find((s) => s.sessionId === "session_a");
+    expect(sA).toBeDefined();
+    expect(sA?.participantCount).toBe(1);
+    expect(sA?.durationSeconds).toBe(120);
+    expect(sA?.language).toBe("indonesian");
+
+    const sB = list.find((s) => s.sessionId === "session_b");
+    expect(sB).toBeDefined();
+    expect(sB?.participantCount).toBe(0);
+    expect(sB?.mode).toBe("words");
+    expect(sB?.modeValue).toBe(25);
+  });
 });
