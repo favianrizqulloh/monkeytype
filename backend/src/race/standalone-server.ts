@@ -2,7 +2,6 @@ import http from "http";
 import cors from "cors";
 import express from "express";
 import { BASE_CONFIGURATION } from "../constants/base-configuration";
-import { raceManager } from "./race-manager";
 import { initRaceWebSocket } from "./race-ws";
 
 const app = express();
@@ -17,12 +16,6 @@ app.get("/configuration", (_req, res) => {
   res.json({
     message: "Configuration retrieved",
     data: BASE_CONFIGURATION,
-  });
-});
-
-app.get("/api/race/sessions", (_req, res) => {
-  res.json({
-    sessions: raceManager.getActiveSessionsList(),
   });
 });
 

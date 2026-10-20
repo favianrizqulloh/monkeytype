@@ -191,7 +191,7 @@ export function TestPage(): JSXElement {
             onClick={() => void navigate("/race")}
           >
             <Fa icon="fa-flag-checkered" class="text-main" />
-            <span>Ikut / Gabung Lomba (Pilih Sesi)</span>
+            <span>Gabung Arena Lomba</span>
           </button>
 
           <button
