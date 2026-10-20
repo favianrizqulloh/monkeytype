@@ -129,6 +129,15 @@ function handleServerMessage(msg: Record<string, unknown>): void {
       break;
     }
 
+    case "timer_sync": {
+      const remainingSeconds = msg["remainingSeconds"] as number;
+      setRemainingSeconds(remainingSeconds);
+      if (remainingSeconds <= 0) {
+        clearInterval(raceTimerInterval);
+      }
+      break;
+    }
+
     case "participant_finished": {
       const p = msg["participant"] as RaceParticipantState;
       addOrUpdateParticipant(p);
@@ -184,11 +193,21 @@ function handleServerMessage(msg: Record<string, unknown>): void {
   }
 }
 
+export type RaceConfigOptions = {
+  durationSeconds?: number;
+  mode?: "time" | "words" | "quote" | "custom";
+  modeValue?: number;
+  language?: "indonesian" | "english";
+  punctuation?: boolean;
+  numbers?: boolean;
+  customText?: string;
+};
+
 export function joinRoom(
   sessionId: string,
   name: string,
   isTeacher: boolean,
-  durationSeconds?: number,
+  options?: RaceConfigOptions,
 ): void {
   const ws = connectRaceSocket();
   const send = (): void => {
@@ -198,7 +217,13 @@ export function joinRoom(
         sessionId,
         name,
         isTeacher,
-        durationSeconds,
+        durationSeconds: options?.durationSeconds,
+        mode: options?.mode,
+        modeValue: options?.modeValue,
+        language: options?.language,
+        punctuation: options?.punctuation,
+        numbers: options?.numbers,
+        customText: options?.customText,
       }),
     );
   };
@@ -254,26 +279,35 @@ export function sendNextAttempt(): void {
   }
 }
 
-export function startRace(durationSeconds?: number): void {
+export function startRace(options?: RaceConfigOptions | number): void {
   if (socket && socket.readyState === WebSocket.OPEN) {
-    socket.send(
-      JSON.stringify({
-        action: "start_race",
-        durationSeconds,
-      }),
-    );
+    const payload =
+      typeof options === "number"
+        ? { action: "start_race", durationSeconds: options }
+        : { action: "start_race", ...options };
+    socket.send(JSON.stringify(payload));
   }
 }
 
-export function resetRace(customText?: string, durationSeconds?: number): void {
+export function resetRace(
+  options?: RaceConfigOptions | string,
+  durationSeconds?: number,
+): void {
   if (socket && socket.readyState === WebSocket.OPEN) {
-    socket.send(
-      JSON.stringify({
+    let payload: Record<string, unknown>;
+    if (typeof options === "string" || durationSeconds !== undefined) {
+      payload = {
         action: "reset_race",
-        customText,
+        customText: typeof options === "string" ? options : undefined,
         durationSeconds,
-      }),
-    );
+      };
+    } else {
+      payload = {
+        action: "reset_race",
+        ...options,
+      };
+    }
+    socket.send(JSON.stringify(payload));
   }
 }
 

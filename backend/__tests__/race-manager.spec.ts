@@ -32,7 +32,9 @@ describe("RaceManager", () => {
 
   it("updates participant progress during race", () => {
     manager.joinParticipant("s1", "p1", "Budi", false);
-    const session = manager.getSession("s1")!;
+    const session = manager.getSession("s1");
+    expect(session).toBeDefined();
+    if (!session) return;
     session.status = "racing";
 
     const updated = manager.updateProgress("s1", "p1", 45.6, 75, 98);
@@ -44,7 +46,9 @@ describe("RaceManager", () => {
   it("finishes participants and assigns ranks based on best WPM", () => {
     manager.joinParticipant("s1", "p1", "Budi", false);
     manager.joinParticipant("s1", "p2", "Siti", false);
-    const session = manager.getSession("s1")!;
+    const session = manager.getSession("s1");
+    expect(session).toBeDefined();
+    if (!session) return;
     session.status = "racing";
 
     // P2 finishes first with 90 WPM
@@ -67,22 +71,45 @@ describe("RaceManager", () => {
     expect(res3?.participant.bestWpm).toBe(95);
 
     const lb = manager.getLeaderboard(session);
-    expect(lb[0]!.id).toBe("p1"); // P1 is now 1st with 95 WPM
-    expect(lb[0]!.bestWpm).toBe(95);
-    expect(lb[1]!.id).toBe("p2"); // P2 is 2nd with 90 WPM
-    expect(lb[1]!.bestWpm).toBe(90);
+    expect(lb[0]?.id).toBe("p1"); // P1 is now 1st with 95 WPM
+    expect(lb[0]?.bestWpm).toBe(95);
+    expect(lb[1]?.id).toBe("p2"); // P2 is 2nd with 90 WPM
+    expect(lb[1]?.bestWpm).toBe(90);
   });
 
   it("resets race state and generates new passage", () => {
     manager.joinParticipant("s1", "p1", "Budi", false);
-    const session = manager.getSession("s1")!;
+    const session = manager.getSession("s1");
+    expect(session).toBeDefined();
+    if (!session) return;
     session.status = "racing";
     manager.finishParticipant("s1", "p1", 80, 95, 30);
 
     const resetSession = manager.resetRace("s1");
     expect(resetSession?.status).toBe("lobby");
-    expect(resetSession?.participants[0]!.progress).toBe(0);
-    expect(resetSession?.participants[0]!.finished).toBe(false);
-    expect(resetSession?.participants[0]!.rank).toBeUndefined();
+    expect(resetSession?.participants[0]?.progress).toBe(0);
+    expect(resetSession?.participants[0]?.finished).toBe(false);
+    expect(resetSession?.participants[0]?.rank).toBeUndefined();
+  });
+
+  it("supports mode selection, English language, and custom text", () => {
+    // Custom text
+    const customSession = manager.getOrCreateSession("custom1", {
+      mode: "custom",
+      customText: "Ketik teks ini untuk latihan kustom kelas 10A.",
+    });
+    expect(customSession.text).toBe(
+      "Ketik teks ini untuk latihan kustom kelas 10A.",
+    );
+
+    // Words mode with English & numbers
+    const wordsSession = manager.getOrCreateSession("words1", {
+      mode: "words",
+      modeValue: 15,
+      language: "english",
+      numbers: true,
+      punctuation: true,
+    });
+    expect(wordsSession.text.split(" ").length).toBe(15);
   });
 });

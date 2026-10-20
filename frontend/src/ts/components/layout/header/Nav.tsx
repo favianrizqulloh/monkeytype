@@ -117,6 +117,23 @@ export function Nav(): JSXElement {
       <Button
         variant="text"
         fa={{
+          icon: "fa-trophy",
+          fixedWidth: true,
+        }}
+        router-link
+        href="/result"
+        class={cn(buttonClass(), "text-main")}
+        balloon={{
+          text: "Live Competition",
+          position: "down",
+        }}
+        dataset={{
+          "data-nav-item": "result",
+        }}
+      />
+      <Button
+        variant="text"
+        fa={{
           icon: "fa-crown",
           fixedWidth: true,
         }}

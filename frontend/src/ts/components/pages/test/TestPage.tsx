@@ -2,6 +2,7 @@ import { JSXElement, onCleanup, onMount, Show } from "solid-js";
 
 import { getConfig } from "../../../config/store";
 import { updateFooterAndVerticalAds } from "../../../controllers/ad-controller";
+import { navigate } from "../../../controllers/route-controller";
 import {
   isInputElementFocused,
   registerInputElement,
@@ -41,6 +42,7 @@ import * as TestUI from "../../../test/test-ui";
 import { cn } from "../../../utils/cn";
 import { ElementWithUtils } from "../../../utils/dom";
 import { Button } from "../../common/Button";
+import { Fa } from "../../common/Fa";
 import { LoadingCircle } from "../../common/LoadingCircle";
 import { CapsWarning } from "./CapsWarning";
 import { CompositionDisplay } from "./CompositionDisplay";
@@ -167,6 +169,31 @@ export function TestPage(): JSXElement {
   return (
     <>
       <div class="full-width">
+        <div
+          class={cn(
+            "mx-auto mb-4 flex flex-wrap items-center justify-center gap-3 transition-opacity duration-125",
+            {
+              "pointer-events-none opacity-0": getFocus() || getResultVisible(),
+            },
+          )}
+        >
+          <button
+            type="button"
+            class="rounded-radius flex items-center gap-2 border-2 border-sub/30 bg-sub-alt/40 px-4 py-2 text-xs font-bold text-text transition-all hover:bg-sub/20"
+          >
+            <Fa icon="fa-keyboard" class="text-main" />
+            <span>Mode Latihan Mandiri (Solo WPM Test)</span>
+          </button>
+
+          <button
+            type="button"
+            class="rounded-radius flex items-center gap-2 border-2 border-main bg-main/15 px-4 py-2 text-xs font-black text-main shadow-[0_2px_12px_var(--main-color)] transition-all hover:bg-main hover:text-bg active:scale-95"
+            onClick={() => void navigate("/result")}
+          >
+            <Fa icon="fa-trophy" />
+            <span>Mode Kompetisi / Multiplayer (Buka Sesi Lomba) 🚀</span>
+          </button>
+        </div>
         <TestConfig />
       </div>
 

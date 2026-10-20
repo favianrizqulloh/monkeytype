@@ -19,6 +19,7 @@ import {
   getMyParticipantId,
   getPassageAuthor,
   getPassageText,
+  getRaceStatus,
   getRemainingSeconds,
   participants,
 } from "../../../states/race";
@@ -77,7 +78,12 @@ export function RaceTypingArena(props: RaceTypingArenaProps): JSXElement {
   });
 
   const handleArenaClick = (): void => {
-    if (inputRef && !isFinished()) {
+    if (
+      inputRef &&
+      !isFinished() &&
+      getRemainingSeconds() > 0 &&
+      getRaceStatus() === "racing"
+    ) {
       inputRef.focus();
     }
   };
@@ -85,7 +91,13 @@ export function RaceTypingArena(props: RaceTypingArenaProps): JSXElement {
   const handleInput = (
     e: InputEvent & { currentTarget: HTMLInputElement },
   ): void => {
-    if (isFinished()) return;
+    if (
+      isFinished() ||
+      getRemainingSeconds() <= 0 ||
+      getRaceStatus() !== "racing"
+    ) {
+      return;
+    }
 
     const val = e.currentTarget.value;
     const prevLen = typed().length;
@@ -156,7 +168,10 @@ export function RaceTypingArena(props: RaceTypingArenaProps): JSXElement {
   };
 
   createEffect(() => {
-    if (getRemainingSeconds() <= 0 && !isFinished()) {
+    if (
+      (getRemainingSeconds() <= 0 || getRaceStatus() === "finished") &&
+      !isFinished()
+    ) {
       completeTest(liveWpm(), liveAccuracy());
     }
   });
@@ -311,7 +326,11 @@ export function RaceTypingArena(props: RaceTypingArenaProps): JSXElement {
             autocapitalize="off"
             // oxlint-disable-next-line react/no-unknown-property
             spellcheck={false}
-            disabled={isFinished()}
+            disabled={
+              isFinished() ||
+              getRemainingSeconds() <= 0 ||
+              getRaceStatus() !== "racing"
+            }
           />
 
           <div class="relative font-mono text-2xl leading-relaxed tracking-wide select-none">

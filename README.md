@@ -8,20 +8,34 @@ Aplikasi perlombaan mengetik cepat (*typing speed competition*) berbasis web yan
 
 ## Fitur Utama
 
-- **Layar Guru / Proyektor (`/result`)**:
-  - Saat mengunjungi `/result`, Admin Guru langsung disajikan formulir **Pengaturan Sesi Baru** (input Kode Sesi, tombol **Acak Kode**, dan pemilihan durasi kompetisi 1m, 2m, **3m default**, 5m).
-  - Tampilan layar lebar proyektor bertajuk ***TypingTest Live Competition*** dengan countdown bersama 3-2-1, lintasan balapan murid animasi mobil TypeRacer, serta podium juara 1, 2, 3 (Emas, Perak, Perunggu).
-  - Tombol **Salin Link** yang cerdas dan fleksibel: bekerja di semua format domain maupun IP lokal LAN (misal: `http://192.168.0.200:3002` atau `https://domainku.com`).
-- **Kompetisi 3 Menit & Skor WPM Terbaik (Best Score)**:
-  - Durasi sesi kompetisi default adalah **3 menit (180 detik)**.
-  - Murid yang selesai mengetik satu paragraf lebih awal dapat langsung menekan **Enter** atau klik *"Ketik Putaran Berikutnya"* untuk mengulang pengetikan selama waktu masih tersedia.
-  - Sistem otomatis mencatat dan mengurutkan **skor WPM tertinggi (Best WPM)** siswa di layar proyektor.
-- **Layar Murid (`/race`)**:
-  - Siswa cukup memasukkan Nama Lengkap & Kode Sesi (misal `908235`). Tanpa login akun, tanpa email, dan tanpa SSO.
-- **Real-time Synchronization**:
-  - Menggunakan WebSocket dengan latensi sangat rendah untuk update progres pengetikan dan WPM setiap detik.
+- **Pilihan Mode di Halaman Utama (`/`)**:
+  - Saat membuka halaman utama, pengguna langsung disuguhkan pilihan:
+    - **Mode Latihan Mandiri (Solo WPM Test)**: Mengetik sendiri seperti Monkeytype standar.
+    - **Mode Kompetisi / Multiplayer (Buka Sesi Lomba)**: Langsung diarahkan ke `/result` untuk membuka ruang lomba proyektor.
+  - Terdapat tombol pintas `🏆 Live Competition` pada bilah navigasi atas.
+- **Pengaturan Tingkat Mode & Kesulitan Lengkap (`/result`)**:
+  - **Pilihan Mode**:
+    - `time`: Durasi 15s, 30s, 60s, 120s, atau **180s (3 menit default)**.
+    - `words`: Jumlah kata 10, 25, 50, atau 100 kata.
+    - `quote`: Kutipan inspiratif & edukatif acak.
+    - `custom`: Teks materi atau soal pengetikan bebas yang ditentukan oleh guru.
+  - **Toggles Tambahan**:
+    - `@ punctuation`: Menyertakan huruf kapital dan tanda baca (titik, koma).
+    - `# numbers`: Menyertakan angka acak dalam teks.
+  - **Pilihan Bahasa**:
+    - `Bahasa Indonesia` (Default).
+    - `English` (Bahasa Inggris).
+- **Countdown & Timer Tersinkronisasi**:
+  - Hitungan mundur nyata **3... 2... 1...** animasi serentak di layar murid dan proyektor.
+  - Sinkronisasi timer real-time per detik dari server WebSocket (`timer_sync`).
+  - **Anti-Cheat Timer Lock**: Begitu batas waktu habis, input pengetikan seluruh murid otomatis terkunci total (`disabled`) dan skor langsung difinalisasi.
+- **Kompetisi Multi-Attempt & Skor WPM Terbaik (Best Score)**:
+  - Siswa yang menyelesaikan teks sebelum batas waktu berakhir dapat menekan **Enter** untuk mengulang pengetikan demi mengejar WPM lebih tinggi.
+  - Papan skor dan podium juara mengurutkan peserta berdasarkan **skor WPM tertinggi (Best WPM)** dari seluruh putaran yang dilakukan.
+- **Tombol Salin Link Fleksibel**:
+  - Bekerja secara otomatis di semua format domain maupun IP lokal LAN (`http://192.168.x.x:3002`, `http://localhost:3002`, maupun `https://domainku.com`).
 - **Ringan & Bebas Ketergantungan Database**:
-  - Backend *in-memory* mandiri tanpa ketergantungan MongoDB atau Redis untuk sesi lomba kelas.
+  - Backend *in-memory* mandiri tanpa ketergantungan MongoDB atau Redis.
 - **Node.js 24 LTS Ready**:
   - Dioptimalkan dan teruji penuh pada Node.js versi 24 LTS.
 
@@ -30,14 +44,16 @@ Aplikasi perlombaan mengetik cepat (*typing speed competition*) berbasis web yan
 ## Panduan Penggunaan di Kelas Komputer
 
 ### A. Untuk Admin Guru / Pengawas Lomba
-1. **Buat Sesi Lomba**:
+1. **Buka Panel Pengaturan Lomba**:
    - Buka browser di komputer guru dan akses halaman:
      ```text
      http://localhost:3002/result
-     (atau https://domain-anda.com/result)
+     (atau klik tombol "Mode Kompetisi" di halaman utama)
      ```
-   - Tentukan **Kode Sesi** (atau klik tombol **Acak Kode** untuk membuat 6 digit acak).
-   - Pilih **Durasi Sesi Kompetisi** (disarankan **3 Menit**).
+   - Pilih **Mode** (`time`, `words`, `quote`, atau `custom`).
+   - Tentukan nilai durasi atau jumlah kata, aktifkan **punctuation** / **numbers** bila diinginkan.
+   - Pilih **Bahasa** (Bahasa Indonesia atau English).
+   - Tentukan **Kode Sesi** (atau klik tombol **Acak Kode** untuk 6 digit acak).
    - Klik **Buka Ruang Lomba (Proyektor)**.
 2. **Tampilkan ke Layar Proyektor / Smart TV**:
    - Proyeksikan tab browser tersebut ke layar proyektor kelas.
@@ -45,10 +61,10 @@ Aplikasi perlombaan mengetik cepat (*typing speed competition*) berbasis web yan
 3. **Bagikan Link / Kode ke Siswa**:
    - Klik tombol **Salin Link** untuk menyalin link sesi murid, atau arahkan siswa untuk membuka `/race` di browser komputer masing-masing dengan memasukkan Kode Sesi yang tertera di proyektor.
 4. **Mulai Perlombaan**:
-   - Perhatikan daftar siswa yang terhubung di lintasan balapan.
-   - Setelah seluruh siswa bergabung, klik tombol **Mulai Lomba**. Hitungan mundur 3-2-1 akan berjalan serentak di semua komputer.
+   - Perhatikan daftar siswa yang terhubung di lintasan balapan TypeRacer.
+   - Setelah seluruh siswa bergabung, klik tombol **Mulai Lomba**. Hitungan mundur 3-2-1 akan berjalan serentak di layar proyektor dan semua komputer siswa.
 5. **Setelah Selesai**:
-   - Sesi lomba berakhir saat waktu habis. Papan skor dan podium juara otomatis menampilkan Juara 1 (Emas), Juara 2 (Perak), dan Juara 3 (Perunggu).
+   - Begitu waktu habis, pengetikan siswa otomatis terkunci. Podium juara menampilkan Juara 1 (Emas), Juara 2 (Perak), dan Juara 3 (Perunggu) berdasarkan WPM Terbaik.
    - Guru dapat menekan **Ulangi Lomba (Rematch)** untuk ronde balapan berikutnya dengan teks acak baru.
 
 ---
@@ -62,12 +78,14 @@ Aplikasi perlombaan mengetik cepat (*typing speed competition*) berbasis web yan
      ```
    - Masukkan **Nama Lengkap** Anda dan **Kode Sesi** yang ditampilkan di layar proyektor guru.
    - Klik **Gabung Lomba**.
-2. **Menunggu di Lobi**:
-   - Tunggu hingga guru menekan tombol mulai lomba. Posisi jari Anda siap di tombol *home row* keyboard (ASDF JKL;).
+2. **Menunggu di Lobi & Hitungan Mundur**:
+   - Tunggu hingga guru menekan tombol mulai lomba.
+   - Saat hitungan mundur 3... 2... 1... muncul, bersiaplah di tombol *home row* keyboard (ASDF JKL;).
 3. **Mengetik & Mengulang Putaran (Best Score)**:
-   - Ketik kalimat kutipan pada layar secepat dan seakurat mungkin.
-   - Jika Anda selesai mengetik paragraf sebelum waktu 3 menit habis, tekan tombol **Enter** untuk langsung mengetik putaran berikutnya!
-   - Skor yang akan masuk ke papan juara adalah **skor WPM tertinggi** Anda dari seluruh putaran.
+   - Ketik teks pada layar secepat dan seakurat mungkin.
+   - Jika Anda selesai mengetik sebelum waktu habis, tekan tombol **Enter** untuk langsung mengetik putaran berikutnya!
+   - Skor yang akan masuk ke papan juara adalah **skor WPM tertinggi (Best Score)** Anda.
+   - Ketika waktu habis, pengetikan akan otomatis terkunci dan peringkat akhir Anda akan ditampilkan.
 
 ---
 
@@ -105,6 +123,7 @@ node node_modules/vite/bin/vite.js dev
 ```
 
 Buka di browser:
+- Halaman Utama: [http://localhost:3002](http://localhost:3002)
 - Layar Pengaturan Guru / Proyektor: [http://localhost:3002/result](http://localhost:3002/result)
 - Layar Murid: [http://localhost:3002/race](http://localhost:3002/race)
 
@@ -126,7 +145,7 @@ pnpm run race-server
 pnpm run preview-frontend
 ```
 
-Frontend aktif di `http://localhost:3002` (atau IP lokal Anda `http://<ip-komputer>:3002`). Anda bisa langsung mengetes performa production dan koneksi WebSocket balapan tanpa perlu menginstal NGINX terlebih dahulu.
+Frontend aktif di `http://localhost:3002` (atau IP lokal Anda `http://<ip-komputer>:3002`).
 
 ---
 
@@ -192,34 +211,13 @@ pm2 save
 pm2 startup
 ```
 
-Perintah pemantauan:
-```bash
-pm2 status
-pm2 logs
-```
-
 ---
 
 ## 4. Konfigurasi Reverse Proxy NGINX (Pure Reverse Proxy)
 
-Pada model ini, NGINX **tidak membaca file statis secara langsung**, melainkan murni bertindak sebagai **Reverse Proxy Gateway**. Keuntungan:
-- Frontend tetap aktif di port `3002` dan dapat diakses lokal.
-- NGINX dapat dipasang di server yang sama **atau di perangkat server yang terpisah** (misal: NGINX sebagai load balancer/edge server di Server A, aplikasi berjalan di Server B).
-
-### Langkah Buat Konfigurasi NGINX
-
-```bash
-sudo nano /etc/nginx/sites-available/typingtest
-```
-
-Tempel konfigurasi berikut:
+Pada model ini, NGINX **tidak membaca file statis secara langsung**, melainkan murni bertindak sebagai **Reverse Proxy Gateway**:
 
 ```nginx
-# -------------------------------------------------------------
-# Definisi Upstream Aplikasi
-# - Jika NGINX berada di server yang SAMA: gunakan 127.0.0.1
-# - Jika NGINX berada di server BERBEDA: ganti dengan IP server aplikasi
-# -------------------------------------------------------------
 upstream typingtest_frontend {
     server 127.0.0.1:3002;
     keepalive 32;
@@ -233,16 +231,14 @@ upstream typingtest_backend {
 server {
     listen 80;
     listen [::]:80;
-    server_name domain-anda.com; # Ganti dengan domain atau IP publik server Anda
+    server_name domain-anda.com;
 
-    # Kompresi Gzip untuk transmisi cepat
     gzip on;
     gzip_vary on;
     gzip_proxied any;
     gzip_comp_level 6;
     gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript image/svg+xml;
 
-    # 1. Reverse Proxy WebSocket Balapan (/ws/)
     location /ws/ {
         proxy_pass http://typingtest_backend;
         proxy_http_version 1.1;
@@ -252,13 +248,10 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-
-        # Timeout panjang agar koneksi WebSocket siswa tidak putus
         proxy_read_timeout 86400s;
         proxy_send_timeout 86400s;
     }
 
-    # 2. Reverse Proxy REST API Backend (/configuration, /health)
     location ~ ^/(configuration|health) {
         proxy_pass http://typingtest_backend;
         proxy_http_version 1.1;
@@ -268,7 +261,6 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # 3. Reverse Proxy Frontend Web (Port 3002)
     location / {
         proxy_pass http://typingtest_frontend;
         proxy_http_version 1.1;
@@ -287,49 +279,3 @@ sudo ln -s /etc/nginx/sites-available/typingtest /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
 ```
-
-### Langkah Tambahan: Pasang SSL Gratis (HTTPS / WSS) dengan Let's Encrypt
-
-```bash
-sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d domain-anda.com
-```
-Certbot akan otomatis memperbarui konfigurasi NGINX ke port 443 dan mengalihkan semua koneksi HTTP/WS menjadi HTTPS/WSS.
-
----
-
-## 5. Konfigurasi Khusus (Iklan, Database, dan File .env)
-
-### A. Menghilangkan Iklan (Ad-Free by Default)
-- Konfigurasi default di `frontend/src/ts/constants/default-config.ts` sudah disetel permanen ke:
-  ```ts
-  ads: "off"
-  ```
-- Seluruh murid dan pengajar tidak akan melihat slot iklan, banner, atau pelacak eksternal di halaman manapun.
-
-### B. Database (Zero-Dependency In-Memory Architecture)
-- **Mode Lomba Kelas (`standalone-server.ts`)**:
-  - Berjalan **100% in-memory**. Seluruh sesi perlombaan, WebSocket data, dan leaderboard murid diproses secara instan di RAM.
-  - **Anda TIDAK PERLU menginstal MongoDB atau Redis.** Konsumsi memori server sangat kecil (< 60MB RAM) dan setup zero-maintenance.
-
-### C. File Environment (`.env`)
-Untuk backend:
-```env
-# backend/.env
-PORT=5005
-NODE_ENV=production
-```
-Untuk frontend:
-Tidak memerlukan `.env` tambahan karena NGINX otomatis me-reverse proxy `/ws/` dan `/configuration` ke backend.
-
----
-
-## 6. Pengujian & Verifikasi
-
-1. **Akses Langsung (Lokal/Internal)**:
-   - Pengaturan Guru / Proyektor: `http://localhost:3002/result`
-   - Layar Siswa: `http://localhost:3002/race`
-2. **Akses Publik (via NGINX)**:
-   - Pengaturan Guru / Proyektor: `https://domain-anda.com/result`
-   - Layar Siswa: `https://domain-anda.com/race`
-3. Klik **Buka Ruang Lomba** di layar guru, arahkan siswa memasukkan kode sesi di tab siswa, lalu klik **Mulai Lomba** di layar proyektor. Hitung mundur 3-2-1 dan arena pengetikan akan tersinkronisasi secara real-time!

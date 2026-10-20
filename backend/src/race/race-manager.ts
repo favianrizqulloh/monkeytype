@@ -1,4 +1,4 @@
-import { getRandomIndonesianPassage } from "./indonesian-texts";
+import { generatePassage, PassageOptions } from "./passage-generator";
 import { RaceParticipant, RaceSession, SerializedSession } from "./race-types";
 
 export class RaceManager {
@@ -7,27 +7,55 @@ export class RaceManager {
 
   public getOrCreateSession(
     sessionId: string,
-    customDurationSeconds?: number,
+    options?: {
+      durationSeconds?: number;
+      mode?: "time" | "words" | "quote" | "custom";
+      modeValue?: number;
+      language?: "indonesian" | "english";
+      punctuation?: boolean;
+      numbers?: boolean;
+      customText?: string;
+    },
   ): RaceSession {
     const existing = this.sessions.get(sessionId);
     if (existing !== undefined) {
-      if (customDurationSeconds !== undefined && customDurationSeconds > 0) {
-        existing.durationSeconds = customDurationSeconds;
+      if (
+        options?.durationSeconds !== undefined &&
+        options.durationSeconds > 0
+      ) {
+        existing.durationSeconds = options.durationSeconds;
       }
       return existing;
     }
 
-    const passage = getRandomIndonesianPassage();
+    const passageOptions: PassageOptions = {
+      mode: options?.mode ?? "time",
+      modeValue: options?.modeValue ?? 180,
+      language: options?.language ?? "indonesian",
+      punctuation: options?.punctuation ?? false,
+      numbers: options?.numbers ?? false,
+      customText: options?.customText,
+    };
+
+    const passage = generatePassage(passageOptions);
+    const duration =
+      options?.durationSeconds !== undefined && options.durationSeconds > 0
+        ? options.durationSeconds
+        : 180;
+
     const session: RaceSession = {
       id: sessionId,
       status: "lobby",
       createdAt: Date.now(),
       text: passage.text,
       author: passage.author,
-      durationSeconds:
-        customDurationSeconds !== undefined && customDurationSeconds > 0
-          ? customDurationSeconds
-          : 180,
+      durationSeconds: duration,
+      mode: options?.mode ?? "time",
+      modeValue: options?.modeValue ?? 180,
+      language: options?.language ?? "indonesian",
+      punctuation: options?.punctuation ?? false,
+      numbers: options?.numbers ?? false,
+      customText: options?.customText,
       participants: new Map<string, RaceParticipant>(),
     };
 
@@ -46,7 +74,9 @@ export class RaceManager {
     isTeacher: boolean,
     customDurationSeconds?: number,
   ): RaceParticipant {
-    const session = this.getOrCreateSession(sessionId, customDurationSeconds);
+    const session = this.getOrCreateSession(sessionId, {
+      durationSeconds: customDurationSeconds,
+    });
     const participant: RaceParticipant = {
       id: participantId,
       name: name.trim() || "Siswa",
@@ -159,14 +189,57 @@ export class RaceManager {
     sessionId: string,
     onCountdown: (seconds: number) => void,
     onStart: (session: SerializedSession) => void,
+    onTick: (remainingSeconds: number) => void,
     onTimeout: (leaderboard: RaceParticipant[]) => void,
-    customDurationSeconds?: number,
+    options?: {
+      durationSeconds?: number;
+      mode?: "time" | "words" | "quote" | "custom";
+      modeValue?: number;
+      language?: "indonesian" | "english";
+      punctuation?: boolean;
+      numbers?: boolean;
+      customText?: string;
+    },
   ): boolean {
     const session = this.sessions.get(sessionId);
     if (session === undefined) return false;
 
-    if (customDurationSeconds !== undefined && customDurationSeconds > 0) {
-      session.durationSeconds = customDurationSeconds;
+    if (options !== undefined) {
+      if (
+        options.durationSeconds !== undefined &&
+        options.durationSeconds > 0
+      ) {
+        session.durationSeconds = options.durationSeconds;
+      }
+      if (options.mode !== undefined) {
+        session.mode = options.mode;
+      }
+      if (options.modeValue !== undefined) {
+        session.modeValue = options.modeValue;
+      }
+      if (options.language !== undefined) {
+        session.language = options.language;
+      }
+      if (options.punctuation !== undefined) {
+        session.punctuation = options.punctuation;
+      }
+      if (options.numbers !== undefined) {
+        session.numbers = options.numbers;
+      }
+      if (options.customText !== undefined) {
+        session.customText = options.customText;
+      }
+
+      const passage = generatePassage({
+        mode: session.mode,
+        modeValue: session.modeValue,
+        language: session.language,
+        punctuation: session.punctuation,
+        numbers: session.numbers,
+        customText: session.customText,
+      });
+      session.text = passage.text;
+      session.author = passage.author;
     }
 
     // Reset participant progress before race starts
@@ -199,12 +272,31 @@ export class RaceManager {
         session.startTime = Date.now();
         onStart(this.serializeSession(session));
 
-        // Start race duration timer (default 180 seconds)
-        const raceTimeout = setTimeout(() => {
-          this.concludeRace(sessionId, onTimeout);
-        }, session.durationSeconds * 1000);
+        // Start 1-second server tick for absolute timer synchronization
+        const tickInterval = setInterval(() => {
+          const currentSession = this.sessions.get(sessionId);
+          if (currentSession?.status !== "racing") {
+            clearInterval(tickInterval);
+            return;
+          }
 
-        this.addTimer(sessionId, raceTimeout);
+          const elapsedSec = Math.floor(
+            (Date.now() - (currentSession.startTime ?? Date.now())) / 1000,
+          );
+          const remainingSec = Math.max(
+            0,
+            currentSession.durationSeconds - elapsedSec,
+          );
+
+          onTick(remainingSec);
+
+          if (remainingSec <= 0) {
+            clearInterval(tickInterval);
+            this.concludeRace(sessionId, onTimeout);
+          }
+        }, 1000);
+
+        this.addTimer(sessionId, tickInterval);
       }
     }, 1000);
 
@@ -235,8 +327,15 @@ export class RaceManager {
 
   public resetRace(
     sessionId: string,
-    customText?: string,
-    customDurationSeconds?: number,
+    options?: {
+      customText?: string;
+      durationSeconds?: number;
+      mode?: "time" | "words" | "quote" | "custom";
+      modeValue?: number;
+      language?: "indonesian" | "english";
+      punctuation?: boolean;
+      numbers?: boolean;
+    },
   ): SerializedSession | undefined {
     const session = this.sessions.get(sessionId);
     if (session === undefined) return undefined;
@@ -244,18 +343,38 @@ export class RaceManager {
     this.clearSessionTimers(sessionId);
     session.status = "lobby";
 
-    if (customDurationSeconds !== undefined && customDurationSeconds > 0) {
-      session.durationSeconds = customDurationSeconds;
+    if (options?.durationSeconds !== undefined && options.durationSeconds > 0) {
+      session.durationSeconds = options.durationSeconds;
+    }
+    if (options?.mode !== undefined) {
+      session.mode = options.mode;
+    }
+    if (options?.modeValue !== undefined) {
+      session.modeValue = options.modeValue;
+    }
+    if (options?.language !== undefined) {
+      session.language = options.language;
+    }
+    if (options?.punctuation !== undefined) {
+      session.punctuation = options.punctuation;
+    }
+    if (options?.numbers !== undefined) {
+      session.numbers = options.numbers;
+    }
+    if (options?.customText !== undefined) {
+      session.customText = options.customText;
     }
 
-    if (customText !== undefined && customText.trim().length > 0) {
-      session.text = customText.trim();
-      session.author = "Pengajar";
-    } else {
-      const passage = getRandomIndonesianPassage();
-      session.text = passage.text;
-      session.author = passage.author;
-    }
+    const passage = generatePassage({
+      mode: session.mode,
+      modeValue: session.modeValue,
+      language: session.language,
+      punctuation: session.punctuation,
+      numbers: session.numbers,
+      customText: session.customText,
+    });
+    session.text = passage.text;
+    session.author = passage.author;
 
     for (const p of session.participants.values()) {
       p.progress = 0;
@@ -305,6 +424,12 @@ export class RaceManager {
       durationSeconds: session.durationSeconds,
       startTime: session.startTime,
       countdownValue: session.countdownValue,
+      mode: session.mode,
+      modeValue: session.modeValue,
+      language: session.language,
+      punctuation: session.punctuation,
+      numbers: session.numbers,
+      customText: session.customText,
       participants: Array.from(session.participants.values()),
     };
   }

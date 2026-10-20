@@ -55,7 +55,15 @@ export function initRaceWebSocket(server: HttpServer): WebSocketServer {
               isTeacher: msg.isTeacher,
             });
 
-            const session = raceManager.getOrCreateSession(sessionId);
+            const session = raceManager.getOrCreateSession(sessionId, {
+              durationSeconds: msg.durationSeconds,
+              mode: msg.mode,
+              modeValue: msg.modeValue,
+              language: msg.language,
+              punctuation: msg.punctuation,
+              numbers: msg.numbers,
+              customText: msg.customText,
+            });
 
             // Send full room state back to joiner
             const roomStateMsg: ServerMessage = {
@@ -179,6 +187,13 @@ export function initRaceWebSocket(server: HttpServer): WebSocketServer {
                 };
                 broadcastToRoom(sId, startMsg);
               },
+              (remainingSeconds) => {
+                const tickMsg: ServerMessage = {
+                  event: "timer_sync",
+                  remainingSeconds,
+                };
+                broadcastToRoom(sId, tickMsg);
+              },
               (leaderboard) => {
                 const finishedMsg: ServerMessage = {
                   event: "race_finished",
@@ -186,7 +201,15 @@ export function initRaceWebSocket(server: HttpServer): WebSocketServer {
                 };
                 broadcastToRoom(sId, finishedMsg);
               },
-              msg.durationSeconds,
+              {
+                durationSeconds: msg.durationSeconds,
+                mode: msg.mode,
+                modeValue: msg.modeValue,
+                language: msg.language,
+                punctuation: msg.punctuation,
+                numbers: msg.numbers,
+                customText: msg.customText,
+              },
             );
             break;
           }
@@ -196,11 +219,15 @@ export function initRaceWebSocket(server: HttpServer): WebSocketServer {
             const sId = meta?.sessionId;
             if (sId === undefined) return;
 
-            const newSession = raceManager.resetRace(
-              sId,
-              msg.customText,
-              msg.durationSeconds,
-            );
+            const newSession = raceManager.resetRace(sId, {
+              customText: msg.customText,
+              durationSeconds: msg.durationSeconds,
+              mode: msg.mode,
+              modeValue: msg.modeValue,
+              language: msg.language,
+              punctuation: msg.punctuation,
+              numbers: msg.numbers,
+            });
             if (newSession !== undefined) {
               const resetMsg: ServerMessage = {
                 event: "race_reset",

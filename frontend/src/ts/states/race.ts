@@ -34,6 +34,18 @@ export const [getRemainingSeconds, setRemainingSeconds] =
   createSignal<number>(180);
 export const [getIsTeacher, setIsTeacher] = createSignal<boolean>(false);
 
+export const [getRaceMode, setRaceMode] = createSignal<
+  "time" | "words" | "quote" | "custom"
+>("time");
+export const [getRaceModeValue, setRaceModeValue] = createSignal<number>(180);
+export const [getRaceLanguage, setRaceLanguage] = createSignal<
+  "indonesian" | "english"
+>("indonesian");
+export const [getRacePunctuation, setRacePunctuation] =
+  createSignal<boolean>(false);
+export const [getRaceNumbers, setRaceNumbers] = createSignal<boolean>(false);
+export const [getRaceCustomText, setRaceCustomText] = createSignal<string>("");
+
 export const [participants, setParticipants] = createStore<
   RaceParticipantState[]
 >([]);

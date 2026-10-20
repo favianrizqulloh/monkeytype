@@ -11,6 +11,7 @@ import {
 
 import { disconnectRaceSocket, joinRoom } from "../../../services/race-socket";
 import {
+  getCountdownSeconds,
   getMyName,
   getMyParticipantId,
   getRaceStatus,
@@ -263,7 +264,7 @@ export function RacePage(): JSXElement {
               Bersiap-siap...
             </span>
             <div class="flex h-32 w-32 animate-bounce items-center justify-center rounded-full bg-main/20 font-mono text-7xl font-black text-main shadow-[0_0_40px_var(--main-color)]">
-              3
+              {getCountdownSeconds()}
             </div>
             <p class="text-sm font-medium text-text">
               Letakkan jari pada posisi home row (ASDF JKL;)

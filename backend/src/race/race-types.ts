@@ -22,9 +22,15 @@ export type RaceSession = {
   createdAt: number;
   text: string;
   author?: string;
-  durationSeconds: number; // default 60s
+  durationSeconds: number; // default 180s
   startTime?: number; // timestamp when racing started
   countdownValue?: number; // 3, 2, 1
+  mode?: "time" | "words" | "quote" | "custom";
+  modeValue?: number;
+  language?: "indonesian" | "english";
+  punctuation?: boolean;
+  numbers?: boolean;
+  customText?: string;
   participants: Map<string, RaceParticipant>;
 };
 
@@ -34,6 +40,12 @@ export type ClientJoinMessage = {
   name: string;
   isTeacher: boolean;
   durationSeconds?: number;
+  mode?: "time" | "words" | "quote" | "custom";
+  modeValue?: number;
+  language?: "indonesian" | "english";
+  punctuation?: boolean;
+  numbers?: boolean;
+  customText?: string;
 };
 
 export type ClientProgressMessage = {
@@ -58,12 +70,23 @@ export type ClientStartRaceMessage = {
   action: "start_race";
   countdownSeconds?: number;
   durationSeconds?: number;
+  mode?: "time" | "words" | "quote" | "custom";
+  modeValue?: number;
+  language?: "indonesian" | "english";
+  punctuation?: boolean;
+  numbers?: boolean;
+  customText?: string;
 };
 
 export type ClientResetRaceMessage = {
   action: "reset_race";
   customText?: string;
   durationSeconds?: number;
+  mode?: "time" | "words" | "quote" | "custom";
+  modeValue?: number;
+  language?: "indonesian" | "english";
+  punctuation?: boolean;
+  numbers?: boolean;
 };
 
 export type ClientMessage =
@@ -82,6 +105,12 @@ export type SerializedSession = {
   durationSeconds: number;
   startTime?: number;
   countdownValue?: number;
+  mode?: "time" | "words" | "quote" | "custom";
+  modeValue?: number;
+  language?: "indonesian" | "english";
+  punctuation?: boolean;
+  numbers?: boolean;
+  customText?: string;
   participants: RaceParticipant[];
 };
 
@@ -138,6 +167,11 @@ export type ServerRaceResetMessage = {
   session: SerializedSession;
 };
 
+export type ServerTimerSyncMessage = {
+  event: "timer_sync";
+  remainingSeconds: number;
+};
+
 export type ServerMessage =
   | ServerRoomStateMessage
   | ServerParticipantJoinedMessage
@@ -147,4 +181,5 @@ export type ServerMessage =
   | ServerProgressUpdateMessage
   | ServerParticipantFinishedMessage
   | ServerRaceFinishedMessage
-  | ServerRaceResetMessage;
+  | ServerRaceResetMessage
+  | ServerTimerSyncMessage;

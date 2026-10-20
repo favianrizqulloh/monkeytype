@@ -16,6 +16,7 @@ import {
   startRace,
 } from "../../../services/race-socket";
 import {
+  getCountdownSeconds,
   getRaceStatus,
   getRemainingSeconds,
   getSessionDuration,
@@ -38,10 +39,19 @@ export function RaceProjectorPage(): JSXElement {
   const [copiedLink, setCopiedLink] = createSignal(false);
   const [hasActiveSession, setHasActiveSession] = createSignal(false);
 
-  // Setup form signals
+  // Setup form signals (Monkeytype-style)
   const [setupSessionId, setSetupSessionId] =
     createSignal(generateRandomCode());
-  const [setupDuration, setSetupDuration] = createSignal<number>(180);
+  const [setupMode, setSetupMode] = createSignal<
+    "time" | "words" | "quote" | "custom"
+  >("time");
+  const [setupModeValue, setSetupModeValue] = createSignal<number>(180);
+  const [setupLanguage, setSetupLanguage] = createSignal<
+    "indonesian" | "english"
+  >("indonesian");
+  const [setupPunctuation, setSetupPunctuation] = createSignal<boolean>(false);
+  const [setupNumbers, setSetupNumbers] = createSignal<boolean>(false);
+  const [setupCustomText, setSetupCustomText] = createSignal<string>("");
 
   onMount(() => {
     let session = "";
@@ -62,9 +72,17 @@ export function RaceProjectorPage(): JSXElement {
     if (session.length > 0) {
       setSetupSessionId(session);
       setSessionId(session);
-      setSessionDuration(setupDuration());
+      setSessionDuration(setupModeValue());
       setHasActiveSession(true);
-      joinRoom(session, "Pengajar (Proyektor)", true, setupDuration());
+      joinRoom(session, "Pengajar (Proyektor)", true, {
+        durationSeconds: setupMode() === "time" ? setupModeValue() : 180,
+        mode: setupMode(),
+        modeValue: setupModeValue(),
+        language: setupLanguage(),
+        punctuation: setupPunctuation(),
+        numbers: setupNumbers(),
+        customText: setupCustomText(),
+      });
     }
 
     const onFullscreenChange = (): void => {
@@ -78,20 +96,62 @@ export function RaceProjectorPage(): JSXElement {
     });
   });
 
+  const getEffectiveDuration = (): number => {
+    if (setupMode() === "time") {
+      return setupModeValue();
+    }
+    return 180; // default 3 minutes for words/quote/custom
+  };
+
   const handleStartSession = (e?: Event): void => {
     e?.preventDefault();
     const session = setupSessionId().trim();
     if (session.length === 0) return;
 
+    const effectiveDuration = getEffectiveDuration();
     window.history.pushState(null, "", `/result/${session}`);
     setSessionId(session);
-    setSessionDuration(setupDuration());
+    setSessionDuration(effectiveDuration);
     setHasActiveSession(true);
-    joinRoom(session, "Pengajar (Proyektor)", true, setupDuration());
+    joinRoom(session, "Pengajar (Proyektor)", true, {
+      durationSeconds: effectiveDuration,
+      mode: setupMode(),
+      modeValue: setupModeValue(),
+      language: setupLanguage(),
+      punctuation: setupPunctuation(),
+      numbers: setupNumbers(),
+      customText: setupCustomText(),
+    });
   };
 
   const handleRandomizeCode = (): void => {
     setSetupSessionId(generateRandomCode());
+  };
+
+  const handleStartRace = (): void => {
+    const effectiveDuration = getEffectiveDuration();
+    startRace({
+      durationSeconds: effectiveDuration,
+      mode: setupMode(),
+      modeValue: setupModeValue(),
+      language: setupLanguage(),
+      punctuation: setupPunctuation(),
+      numbers: setupNumbers(),
+      customText: setupCustomText(),
+    });
+  };
+
+  const handleResetRace = (): void => {
+    const effectiveDuration = getEffectiveDuration();
+    resetRace({
+      durationSeconds: effectiveDuration,
+      mode: setupMode(),
+      modeValue: setupModeValue(),
+      language: setupLanguage(),
+      punctuation: setupPunctuation(),
+      numbers: setupNumbers(),
+      customText: setupCustomText(),
+    });
   };
 
   const toggleFullscreen = async (): Promise<void> => {
@@ -124,7 +184,7 @@ export function RaceProjectorPage(): JSXElement {
     <div class="flex min-h-screen w-full flex-col bg-bg p-6 text-text select-none">
       {/* View 1: Teacher Session Setup Form (if /result has no session yet) */}
       <Show when={!hasActiveSession()}>
-        <div class="mx-auto flex w-full max-w-xl flex-col items-center justify-center py-10">
+        <div class="mx-auto flex w-full max-w-2xl flex-col items-center justify-center py-8">
           <div class="flex w-full flex-col gap-6 rounded-double border border-sub/20 bg-sub-alt/30 p-8 shadow-2xl backdrop-blur-md">
             <div class="flex flex-col items-center text-center">
               <div class="mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-main/15 text-main shadow-[0_0_24px_var(--main-color)]">
@@ -134,11 +194,200 @@ export function RaceProjectorPage(): JSXElement {
                 TypingTest Live Competition
               </h1>
               <p class="mt-1 text-sm text-sub">
-                Panel Pengajar / Guru — Pengaturan Sesi Lomba Baru
+                Panel Pengajar / Guru — Pengaturan Mode, Bahasa & Sesi Lomba
               </p>
             </div>
 
-            <form onSubmit={handleStartSession} class="flex flex-col gap-5">
+            <form onSubmit={handleStartSession} class="flex flex-col gap-6">
+              {/* Monkeytype-Style Navigation Configuration Bar */}
+              <div class="flex flex-col gap-2">
+                <span class="text-xs font-semibold tracking-wider text-sub uppercase">
+                  Konfigurasi Tingkat Mode & Kesulitan (Monkeytype Style)
+                </span>
+
+                <div class="rounded-radius flex flex-wrap items-center justify-center gap-2 border border-sub/25 bg-bg/90 p-2 shadow-inner">
+                  {/* Sub-bar 1: Punctuation & Numbers */}
+                  <div class="rounded-radius flex items-center gap-1 bg-sub-alt/60 p-1">
+                    <button
+                      type="button"
+                      class={`flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-xs font-bold transition-all ${
+                        setupPunctuation()
+                          ? "bg-main text-bg shadow-xs"
+                          : "text-sub hover:text-text"
+                      }`}
+                      onClick={() => setSetupPunctuation(!setupPunctuation())}
+                    >
+                      <Fa icon="fa-at" />
+                      <span>punctuation</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      class={`flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-xs font-bold transition-all ${
+                        setupNumbers()
+                          ? "bg-main text-bg shadow-xs"
+                          : "text-sub hover:text-text"
+                      }`}
+                      onClick={() => setSetupNumbers(!setupNumbers())}
+                    >
+                      <Fa icon="fa-hashtag" />
+                      <span>numbers</span>
+                    </button>
+                  </div>
+
+                  {/* Sub-bar 2: Mode Selector */}
+                  <div class="rounded-radius flex items-center gap-1 bg-sub-alt/60 p-1">
+                    <For
+                      each={
+                        [
+                          {
+                            id: "time",
+                            label: "time",
+                            icon: "fa-clock",
+                          },
+                          {
+                            id: "words",
+                            label: "words",
+                            icon: "fa-font",
+                          },
+                          {
+                            id: "quote",
+                            label: "quote",
+                            icon: "fa-quote-left",
+                          },
+                          {
+                            id: "custom",
+                            label: "custom",
+                            icon: "fa-tools",
+                          },
+                        ] as const
+                      }
+                    >
+                      {(item) => (
+                        <button
+                          type="button"
+                          class={`flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-xs font-bold transition-all ${
+                            setupMode() === item.id
+                              ? "bg-main text-bg shadow-xs"
+                              : "text-sub hover:text-text"
+                          }`}
+                          onClick={() => {
+                            setSetupMode(item.id);
+                            if (item.id === "time") setSetupModeValue(180);
+                            else if (item.id === "words") setSetupModeValue(25);
+                          }}
+                        >
+                          <Fa icon={item.icon} />
+                          <span>{item.label}</span>
+                        </button>
+                      )}
+                    </For>
+                  </div>
+
+                  {/* Sub-bar 3: Values by Mode */}
+                  <div class="rounded-radius flex items-center gap-1 bg-sub-alt/60 p-1">
+                    <Show when={setupMode() === "time"}>
+                      <For each={[15, 30, 60, 120, 180]}>
+                        {(sec) => (
+                          <button
+                            type="button"
+                            class={`rounded-sm px-2.5 py-1.5 font-mono text-xs font-bold transition-all ${
+                              setupModeValue() === sec
+                                ? "bg-main text-bg shadow-xs"
+                                : "text-sub hover:text-text"
+                            }`}
+                            onClick={() => setSetupModeValue(sec)}
+                          >
+                            {sec}
+                          </button>
+                        )}
+                      </For>
+                    </Show>
+
+                    <Show when={setupMode() === "words"}>
+                      <For each={[10, 25, 50, 100]}>
+                        {(w) => (
+                          <button
+                            type="button"
+                            class={`rounded-sm px-2.5 py-1.5 font-mono text-xs font-bold transition-all ${
+                              setupModeValue() === w
+                                ? "bg-main text-bg shadow-xs"
+                                : "text-sub hover:text-text"
+                            }`}
+                            onClick={() => setSetupModeValue(w)}
+                          >
+                            {w}
+                          </button>
+                        )}
+                      </For>
+                    </Show>
+
+                    <Show when={setupMode() === "quote"}>
+                      <span class="px-2 text-xs text-sub italic">
+                        Kutipan Acak
+                      </span>
+                    </Show>
+
+                    <Show when={setupMode() === "custom"}>
+                      <span class="px-2 text-xs text-sub italic">
+                        Teks Kustom
+                      </span>
+                    </Show>
+                  </div>
+                </div>
+              </div>
+
+              {/* Language Selector */}
+              <div class="flex flex-col gap-1.5">
+                <label class="text-xs font-semibold tracking-wider text-sub uppercase">
+                  Pilihan Bahasa Teks
+                </label>
+                <div class="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    class={`rounded-radius flex items-center justify-center gap-2 p-3 text-sm transition-all ${
+                      setupLanguage() === "indonesian"
+                        ? "border-2 border-main bg-main/15 font-bold text-main shadow-md"
+                        : "border border-sub/20 bg-bg text-sub hover:border-sub/50 hover:text-text"
+                    }`}
+                    onClick={() => setSetupLanguage("indonesian")}
+                  >
+                    <Fa icon="fa-globe-asia" />
+                    <span>Bahasa Indonesia (Default)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    class={`rounded-radius flex items-center justify-center gap-2 p-3 text-sm transition-all ${
+                      setupLanguage() === "english"
+                        ? "border-2 border-main bg-main/15 font-bold text-main shadow-md"
+                        : "border border-sub/20 bg-bg text-sub hover:border-sub/50 hover:text-text"
+                    }`}
+                    onClick={() => setSetupLanguage("english")}
+                  >
+                    <Fa icon="fa-language" />
+                    <span>English (Bahasa Inggris)</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Custom Textarea if mode === "custom" */}
+              <Show when={setupMode() === "custom"}>
+                <div class="flex flex-col gap-1.5">
+                  <label class="text-xs font-semibold tracking-wider text-sub uppercase">
+                    Teks Kustom / Soal Mengetik Guru
+                  </label>
+                  <textarea
+                    rows={4}
+                    placeholder="Tuliskan atau tempel paragraf yang ingin dijadikan materi lomba di sini..."
+                    class="rounded-radius w-full border border-sub/30 bg-bg p-3 text-sm text-text transition-all outline-none focus:border-main focus:ring-2 focus:ring-main/20"
+                    value={setupCustomText()}
+                    onInput={(e) => setSetupCustomText(e.currentTarget.value)}
+                    required
+                  ></textarea>
+                </div>
+              </Show>
+
               {/* Kode Sesi Input & Acak Button */}
               <div class="flex flex-col gap-1.5">
                 <label class="text-xs font-semibold tracking-wider text-sub uppercase">
@@ -168,44 +417,6 @@ export function RaceProjectorPage(): JSXElement {
                 </span>
               </div>
 
-              {/* Durasi Sesi Lomba Selector */}
-              <div class="flex flex-col gap-1.5">
-                <label class="text-xs font-semibold tracking-wider text-sub uppercase">
-                  Durasi Sesi Kompetisi
-                </label>
-                <div class="grid grid-cols-4 gap-2">
-                  <For
-                    each={[
-                      { label: "1 Menit", sec: 60 },
-                      { label: "2 Menit", sec: 120 },
-                      { label: "3 Menit (Default)", sec: 180 },
-                      { label: "5 Menit", sec: 300 },
-                    ]}
-                  >
-                    {(item) => (
-                      <button
-                        type="button"
-                        class={`rounded-radius flex flex-col items-center justify-center p-3 text-center transition-all ${
-                          setupDuration() === item.sec
-                            ? "border-2 border-main bg-main/15 font-bold text-main shadow-md"
-                            : "border border-sub/20 bg-bg text-sub hover:border-sub/50 hover:text-text"
-                        }`}
-                        onClick={() => setSetupDuration(item.sec)}
-                      >
-                        <span class="text-xs">{item.label}</span>
-                        <span class="font-mono text-[10px] opacity-70">
-                          {item.sec} detik
-                        </span>
-                      </button>
-                    )}
-                  </For>
-                </div>
-                <span class="text-[11px] text-sub">
-                  Siswa dapat mengulang mengetik bila selesai lebih awal. Skor
-                  tertinggi (Best WPM) mereka yang akan dicatat!
-                </span>
-              </div>
-
               {/* Panduan Guru Card */}
               <div class="rounded-radius flex flex-col gap-2 border border-sub/20 bg-bg/80 p-4 text-xs text-sub">
                 <div class="flex items-center gap-2 font-bold text-text">
@@ -214,8 +425,8 @@ export function RaceProjectorPage(): JSXElement {
                 </div>
                 <ol class="list-inside list-decimal space-y-1.5 pl-1 text-sub">
                   <li>
-                    Atur Kode Sesi dan Durasi (default direkomendasikan 3
-                    menit).
+                    Pilih Mode, Bahasa, Tanda Baca, Angka, dan Kode Sesi di
+                    atas.
                   </li>
                   <li>
                     Klik <b>&quot;Buka Ruang Lomba&quot;</b> untuk membuka layar
@@ -246,6 +457,21 @@ export function RaceProjectorPage(): JSXElement {
 
       {/* View 2: Live Competition Projector View */}
       <Show when={hasActiveSession()}>
+        {/* Full-screen Synchronized Countdown Overlay */}
+        <Show when={getRaceStatus() === "countdown"}>
+          <div class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-bg/90 backdrop-blur-md">
+            <span class="text-xl font-bold tracking-widest text-sub uppercase">
+              Lomba Dimulai Dalam...
+            </span>
+            <div class="mt-4 flex h-48 w-48 animate-bounce items-center justify-center rounded-full bg-main/20 font-mono text-9xl font-black text-main shadow-[0_0_60px_var(--main-color)]">
+              {getCountdownSeconds()}
+            </div>
+            <span class="mt-6 text-sm text-sub">
+              Semua peserta bersiap di keyboard masing-masing!
+            </span>
+          </div>
+        </Show>
+
         {/* Top Control Bar */}
         <header class="rounded-radius flex flex-wrap items-center justify-between gap-4 border border-sub/20 bg-sub-alt/30 px-6 py-4 backdrop-blur-md">
           <div class="flex items-center gap-4">
@@ -259,6 +485,9 @@ export function RaceProjectorPage(): JSXElement {
                 </h1>
                 <span class="rounded-full bg-main/20 px-2.5 py-0.5 text-xs font-bold text-main">
                   LIVE
+                </span>
+                <span class="rounded-full bg-sub/20 px-2.5 py-0.5 text-xs font-semibold text-text uppercase">
+                  {setupMode()}: {setupModeValue()} | {setupLanguage()}
                 </span>
               </div>
               <p class="text-xs text-sub">
@@ -293,7 +522,7 @@ export function RaceProjectorPage(): JSXElement {
               <Button
                 variant="text"
                 class="rounded-radius flex items-center gap-2 bg-main px-6 py-2.5 font-bold text-bg shadow-[0_4px_16px_var(--main-color)] transition-all hover:brightness-110 active:scale-95"
-                onClick={() => startRace(getSessionDuration())}
+                onClick={handleStartRace}
               >
                 <Fa icon="fa-play" />
                 <span>Mulai Lomba</span>
@@ -313,7 +542,7 @@ export function RaceProjectorPage(): JSXElement {
               <Button
                 variant="text"
                 class="rounded-radius flex items-center gap-2 bg-main px-6 py-2.5 font-bold text-bg shadow-[0_4px_16px_var(--main-color)] transition-all hover:brightness-110 active:scale-95"
-                onClick={() => resetRace(undefined, getSessionDuration())}
+                onClick={handleResetRace}
               >
                 <Fa icon="fa-redo-alt" />
                 <span>Ulangi Lomba (Rematch)</span>
@@ -359,8 +588,13 @@ export function RaceProjectorPage(): JSXElement {
                   </span>
                 </p>
                 <span class="text-xs text-sub">
-                  💡 Tips: Siswa dapat mengulang mengetik berkali-kali selama 3
-                  menit. Skor terbaik (Best WPM) otomatis masuk ke peringkat!
+                  💡 Mode Lomba:{" "}
+                  <b class="text-main">
+                    {setupMode().toUpperCase()} ({setupModeValue()})
+                  </b>{" "}
+                  | Bahasa: <b class="text-main">{setupLanguage()}</b>
+                  {setupPunctuation() ? " | +Punctuation" : ""}
+                  {setupNumbers() ? " | +Numbers" : ""}
                 </span>
               </div>
 
@@ -607,9 +841,9 @@ export function RaceProjectorPage(): JSXElement {
               serentak.
             </p>
             <p>
-              3. Siswa dapat mengetik berulang kali selama 3 menit. Papan skor
-              dan podium juara akan otomatis mengurutkan siswa berdasarkan skor{" "}
-              <b>WPM tertinggi (Best Score)</b> mereka.
+              3. Siswa dapat mengetik berulang kali selama batas waktu sesi.
+              Papan skor dan podium juara akan otomatis mengurutkan siswa
+              berdasarkan skor <b>WPM tertinggi (Best Score)</b> mereka.
             </p>
           </div>
         </main>
