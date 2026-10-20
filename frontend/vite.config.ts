@@ -344,6 +344,11 @@ export default defineConfig(({ mode }): UserConfig => {
     plugins: getPlugins({ isDevelopment, useSentry: useSentry, env }),
     build: getBuildOptions({ enableSourceMaps: useSentry }),
     css: getCssOptions({ isDevelopment }),
+    preview: {
+      port: 3000,
+      host: "0.0.0.0",
+      open: false,
+    },
     server: {
       open: env["SERVER_OPEN"] !== "false",
       port: 3000,
