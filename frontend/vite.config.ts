@@ -7,6 +7,7 @@ import {
   CSSOptions,
 } from "vite";
 import path from "node:path";
+import fs from "node:fs";
 import injectHTML from "vite-plugin-html-inject";
 import childProcess from "child_process";
 import autoprefixer from "autoprefixer";
@@ -333,9 +334,7 @@ export default defineConfig(({ mode }): UserConfig => {
   const isDevelopment = mode !== "production";
 
   if (!isDevelopment) {
-    if (env["RECAPTCHA_SITE_KEY"] === undefined) {
-      env["RECAPTCHA_SITE_KEY"] = "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI";
-    }
+    env["RECAPTCHA_SITE_KEY"] ??= "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI";
     if (useSentry && env["SENTRY_AUTH_TOKEN"] === undefined) {
       throw new Error(`${mode}: SENTRY_AUTH_TOKEN is not defined`);
     }
@@ -362,14 +361,31 @@ export default defineConfig(({ mode }): UserConfig => {
       },
     },
     resolve: {
-      alias: isDevelopment
-        ? []
-        : [
-            {
-              find: /\/constants\/firebase-config$/,
-              replacement: "/constants/firebase-config-live",
-            },
-          ],
+      alias: [
+        {
+          find: /.*constants\/firebase-config$/,
+          replacement: (() => {
+            const live = path.resolve(
+              __dirname,
+              "src/ts/constants/firebase-config-live.ts",
+            );
+            if (!isDevelopment && fs.existsSync(live)) {
+              return live;
+            }
+            const regular = path.resolve(
+              __dirname,
+              "src/ts/constants/firebase-config.ts",
+            );
+            if (fs.existsSync(regular)) {
+              return regular;
+            }
+            return path.resolve(
+              __dirname,
+              "src/ts/constants/firebase-config-example.ts",
+            );
+          })(),
+        },
+      ],
     },
     clearScreen: false,
     root: "src",
