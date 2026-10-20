@@ -345,13 +345,13 @@ export default defineConfig(({ mode }): UserConfig => {
     build: getBuildOptions({ enableSourceMaps: useSentry }),
     css: getCssOptions({ isDevelopment }),
     preview: {
-      port: 3000,
+      port: 3002,
       host: "0.0.0.0",
       open: false,
     },
     server: {
       open: env["SERVER_OPEN"] !== "false",
-      port: 3000,
+      port: 3002,
       host: env["BACKEND_URL"] !== undefined,
       proxy: {
         "/ws": {

@@ -21,7 +21,7 @@ A web-based typing speed competition application combining the modern aesthetics
 
 | Component | Port | Description |
 |---|---|---|
-| **Frontend Web** | `3000` | SolidJS (`.tsx`) + TailwindCSS UI (Dev or Production Preview) |
+| **Frontend Web** | `3002` | SolidJS (`.tsx`) + TailwindCSS UI (Dev or Production Preview) |
 | **Backend Race Server** | `5005` | WebSocket `ws://.../ws/race` + Mock REST API (`0.0.0.0`) |
 | **NGINX Reverse Proxy** | `80` / `443` | Reverse proxy gateway (On the same server or a dedicated server) |
 
@@ -51,8 +51,8 @@ node node_modules/vite/bin/vite.js dev
 ```
 
 Open in browser:
-- Teacher / Projector View: [http://localhost:3000/result908235](http://localhost:3000/result908235)
-- Student View: [http://localhost:3000/race?session=908235](http://localhost:3000/race?session=908235)
+- Teacher / Projector View: [http://localhost:3002/result908235](http://localhost:3002/result908235)
+- Student View: [http://localhost:3002/race?session=908235](http://localhost:3002/race?session=908235)
 
 ---
 
@@ -72,7 +72,7 @@ pnpm run race-server
 pnpm run preview-frontend
 ```
 
-The frontend will run at `http://localhost:3000` (or `http://<your-ip>:3000`). You can immediately verify production performance and WebSocket synchronization without installing NGINX first.
+The frontend will run at `http://localhost:3002` (or `http://<your-ip>:3002`). You can immediately verify production performance and WebSocket synchronization without installing NGINX first.
 
 ---
 
@@ -130,7 +130,7 @@ cd /var/www/typingtest
 # 1. Run Backend Race WebSocket Server (Port 5005)
 pm2 start "node backend/node_modules/tsx/dist/cli.mjs backend/src/race/standalone-server.ts" --name "typingtest-race"
 
-# 2. Run Frontend Web Server (Port 3000)
+# 2. Run Frontend Web Server (Port 3002)
 pm2 start "pnpm --filter @monkeytype/frontend run start" --name "typingtest-frontend"
 
 # Save process list to auto-start on server reboot
@@ -149,7 +149,7 @@ pm2 logs
 ## 4. NGINX Pure Reverse Proxy Configuration
 
 In this architecture, NGINX **does not serve static files directly from disk**. Instead, it functions purely as a **Reverse Proxy Gateway**. Benefits:
-- The frontend process runs actively on port `3000` and remains testable locally.
+- The frontend process runs actively on port `3002` and remains testable locally.
 - NGINX can be hosted on the same server **or on a completely separate server** (e.g., NGINX edge gateway/load balancer on Server A, app running on Server B).
 
 ### Create NGINX Configuration
@@ -167,7 +167,7 @@ Paste the following configuration:
 # - If NGINX is on a SEPARATE server: replace with the application server IP
 # -------------------------------------------------------------
 upstream typingtest_frontend {
-    server 127.0.0.1:3000;
+    server 127.0.0.1:3002;
     keepalive 32;
 }
 
@@ -214,7 +214,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # 3. Reverse Proxy Frontend Web (Port 3000)
+    # 3. Reverse Proxy Frontend Web (Port 3002)
     location / {
         proxy_pass http://typingtest_frontend;
         proxy_http_version 1.1;
@@ -273,8 +273,8 @@ No additional `.env` file is required because NGINX handles the reverse proxying
 ## 6. Testing & Verification
 
 1. **Direct Access (Local / Internal Network)**:
-   - Teacher Projector: `http://localhost:3000/result908235`
-   - Student Screen: `http://localhost:3000/race?session=908235`
+   - Teacher Projector: `http://localhost:3002/result908235`
+   - Student Screen: `http://localhost:3002/race?session=908235`
 2. **Public Access (via NGINX)**:
    - Teacher Projector: `https://your-domain.com/result908235`
    - Student Screen: `https://your-domain.com/race?session=908235`

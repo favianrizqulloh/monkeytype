@@ -21,7 +21,7 @@ Aplikasi perlombaan mengetik cepat (typing speed competition) berbasis web yang 
 
 | Komponen | Port | Deskripsi |
 |---|---|---|
-| **Frontend Web** | `3000` | SolidJS (`.tsx`) + TailwindCSS UI (Dev atau Production Preview) |
+| **Frontend Web** | `3002` | SolidJS (`.tsx`) + TailwindCSS UI (Dev atau Production Preview) |
 | **Backend Race Server** | `5005` | WebSocket `ws://.../ws/race` + Mock REST API (`0.0.0.0`) |
 | **NGINX Reverse Proxy** | `80` / `443` | Reverse proxy gateway (Bisa di server sama atau server berbeda) |
 
@@ -51,8 +51,8 @@ node node_modules/vite/bin/vite.js dev
 ```
 
 Buka di browser:
-- Layar Guru / Proyektor: [http://localhost:3000/result908235](http://localhost:3000/result908235)
-- Layar Murid: [http://localhost:3000/race?session=908235](http://localhost:3000/race?session=908235)
+- Layar Guru / Proyektor: [http://localhost:3002/result908235](http://localhost:3002/result908235)
+- Layar Murid: [http://localhost:3002/race?session=908235](http://localhost:3002/race?session=908235)
 
 ---
 
@@ -72,7 +72,7 @@ pnpm run race-server
 pnpm run preview-frontend
 ```
 
-Frontend aktif di `http://localhost:3000` (atau IP lokal Anda `http://<ip-komputer>:3000`). Anda bisa langsung mengetes performa production dan koneksi WebSocket balapan tanpa perlu menginstal NGINX terlebih dahulu.
+Frontend aktif di `http://localhost:3002` (atau IP lokal Anda `http://<ip-komputer>:3002`). Anda bisa langsung mengetes performa production dan koneksi WebSocket balapan tanpa perlu menginstal NGINX terlebih dahulu.
 
 ---
 
@@ -130,7 +130,7 @@ cd /var/www/typingtest
 # 1. Jalankan Backend Race WebSocket Server (Port 5005)
 pm2 start "node backend/node_modules/tsx/dist/cli.mjs backend/src/race/standalone-server.ts" --name "typingtest-race"
 
-# 2. Jalankan Frontend Web Server (Port 3000)
+# 2. Jalankan Frontend Web Server (Port 3002)
 pm2 start "pnpm --filter @monkeytype/frontend run start" --name "typingtest-frontend"
 
 # Simpan proses agar otomatis aktif setelah reboot server
@@ -149,7 +149,7 @@ pm2 logs
 ## 4. Konfigurasi Reverse Proxy NGINX (Pure Reverse Proxy)
 
 Pada model ini, NGINX **tidak membaca file statis secara langsung**, melainkan murni bertindak sebagai **Reverse Proxy Gateway**. Keuntungan:
-- Frontend tetap aktif di port `3000` dan dapat diakses lokal.
+- Frontend tetap aktif di port `3002` dan dapat diakses lokal.
 - NGINX dapat dipasang di server yang sama **atau di perangkat server yang terpisah** (misal: NGINX sebagai load balancer/edge server di Server A, aplikasi berjalan di Server B).
 
 ### Langkah Buat Konfigurasi NGINX
@@ -167,7 +167,7 @@ Tempel konfigurasi berikut:
 # - Jika NGINX berada di server BERBEDA: ganti dengan IP server aplikasi
 # -------------------------------------------------------------
 upstream typingtest_frontend {
-    server 127.0.0.1:3000;
+    server 127.0.0.1:3002;
     keepalive 32;
 }
 
@@ -214,7 +214,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # 3. Reverse Proxy Frontend Web (Port 3000)
+    # 3. Reverse Proxy Frontend Web (Port 3002)
     location / {
         proxy_pass http://typingtest_frontend;
         proxy_http_version 1.1;
@@ -273,8 +273,8 @@ Tidak memerlukan `.env` tambahan karena NGINX otomatis me-reverse proxy `/ws/` d
 ## 6. Pengujian & Verifikasi
 
 1. **Akses Langsung (Lokal/Internal)**:
-   - Proyektor Guru: `http://localhost:3000/result908235`
-   - Layar Siswa: `http://localhost:3000/race?session=908235`
+   - Proyektor Guru: `http://localhost:3002/result908235`
+   - Layar Siswa: `http://localhost:3002/race?session=908235`
 2. **Akses Publik (via NGINX)**:
    - Proyektor Guru: `https://domain-anda.com/result908235`
    - Layar Siswa: `https://domain-anda.com/race?session=908235`

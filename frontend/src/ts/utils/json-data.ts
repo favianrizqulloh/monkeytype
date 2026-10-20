@@ -6,7 +6,7 @@ import { toHex } from "./strings";
 
 //pin implementation
 const fetch = window.fetch;
-const cryptoSubtle = window.crypto.subtle;
+const cryptoSubtle = window.crypto?.subtle;
 
 /**
  * Fetches JSON data from the specified URL using the fetch API.
@@ -90,7 +90,7 @@ const cachedFetchLanguage = memoizeAsync(
   async (lang: Language): Promise<LanguageObject> => {
     const loaded = await fetchJson<LanguageObject>(`/languages/${lang}.json`);
 
-    if (!isDevEnvironment()) {
+    if (!isDevEnvironment() && cryptoSubtle !== undefined) {
       //check the content to make it less easy to manipulate
       const encoder = new TextEncoder();
       const data = encoder.encode(JSON.stringify(loaded, null, 0));
