@@ -114,14 +114,14 @@ describe("RaceManager", () => {
     expect(wordsSession.text.split(" ").length).toBe(15);
   });
 
-  it("supports 5-minute (300s) and 10-minute (600s) duration sessions with ample passages", () => {
+  it("supports 5-minute (300s) and 10-minute (600s) duration sessions calibrated for 40-50 WPM participants", () => {
     const s5 = manager.getOrCreateSession("session-5m", {
       durationSeconds: 300,
       mode: "time",
       modeValue: 300,
     });
     expect(s5.durationSeconds).toBe(300);
-    expect(s5.text.split(" ").length).toBeGreaterThanOrEqual(250);
+    expect(s5.text.split(" ").length).toBeGreaterThanOrEqual(160);
 
     const s10 = manager.getOrCreateSession("session-10m", {
       durationSeconds: 600,
@@ -129,7 +129,7 @@ describe("RaceManager", () => {
       modeValue: 600,
     });
     expect(s10.durationSeconds).toBe(600);
-    expect(s10.text.split(" ").length).toBeGreaterThanOrEqual(450);
+    expect(s10.text.split(" ").length).toBeGreaterThanOrEqual(320);
   });
 
   it("scales quote passages with duration and returns fresh quote on next attempt", () => {
@@ -137,7 +137,7 @@ describe("RaceManager", () => {
       mode: "quote",
       durationSeconds: 180,
     });
-    expect(qSession.text.split(" ").length).toBeGreaterThanOrEqual(180);
+    expect(qSession.text.split(" ").length).toBeGreaterThanOrEqual(95);
 
     qSession.status = "racing";
     manager.joinParticipant("quote-session", "p1", "Siswa", false);

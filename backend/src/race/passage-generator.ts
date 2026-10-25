@@ -362,14 +362,16 @@ export function generatePassage(
           ? modeValue
           : 180;
 
-    let targetWords = 220;
-    if (sec <= 15) targetWords = 25;
-    else if (sec <= 30) targetWords = 45;
-    else if (sec <= 60) targetWords = 80;
-    else if (sec <= 120) targetWords = 150;
-    else if (sec <= 180) targetWords = 220;
-    else if (sec <= 300) targetWords = 380;
-    else targetWords = 750;
+    // Calibrated for student typing speeds (35-50 WPM):
+    // At 40 WPM, students finish 100% of sentences before timer ends with breathing room.
+    let targetWords = 105;
+    if (sec <= 15) targetWords = 9;
+    else if (sec <= 30) targetWords = 18;
+    else if (sec <= 60) targetWords = 35;
+    else if (sec <= 120) targetWords = 70;
+    else if (sec <= 180) targetWords = 105;
+    else if (sec <= 300) targetWords = 175;
+    else targetWords = 350;
 
     const shuffled = [...quotes].sort(() => Math.random() - 0.5);
     const selectedQuotes: { text: string; source: string }[] = [];
@@ -407,15 +409,15 @@ export function generatePassage(
   if (mode === "words") {
     wordCount = modeValue !== undefined && modeValue > 0 ? modeValue : 25;
   } else {
-    // Mode time: supply enough words so students don't immediately run out
+    // Mode time: calibrated for student typing speeds (35-50 WPM)
     const sec = modeValue !== undefined && modeValue > 0 ? modeValue : 180;
-    if (sec <= 15) wordCount = 20;
-    else if (sec <= 30) wordCount = 35;
-    else if (sec <= 60) wordCount = 65;
-    else if (sec <= 120) wordCount = 110;
-    else if (sec <= 180) wordCount = 160;
-    else if (sec <= 300) wordCount = 260; // 5 menit
-    else wordCount = 500; // 10 menit (600 detik)
+    if (sec <= 15) wordCount = 9;
+    else if (sec <= 30) wordCount = 18;
+    else if (sec <= 60) wordCount = 35;
+    else if (sec <= 120) wordCount = 70;
+    else if (sec <= 180) wordCount = 100;
+    else if (sec <= 300) wordCount = 170; // 5 menit
+    else wordCount = 340; // 10 menit (600 detik)
   }
 
   const selectedWords: string[] = [];
