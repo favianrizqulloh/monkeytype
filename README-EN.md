@@ -91,11 +91,12 @@ A web-based typing speed competition application combining the modern aesthetics
 
 ## Architecture & Ports
 
-| Component | Port | Description |
+| Component | Port / Protocol | Description |
 |---|---|---|
-| **Frontend Web** | `3002` | SolidJS (`.tsx`) + TailwindCSS UI (Dev or Production Preview) |
-| **Backend Race Server** | `5005` | WebSocket `ws://.../ws/race` + Mock REST API (`0.0.0.0`) |
-| **NGINX Reverse Proxy** | `80` / `443` | Reverse proxy gateway (On the same server or a dedicated server) |
+| **Frontend Web** | `3002 (HTTP)` | SolidJS (`.tsx`) + TailwindCSS UI (Internal Server) |
+| **Backend Race Server** | `5005 (HTTP/WS)` | WebSocket `ws://.../ws/race` + Mock REST API (`0.0.0.0`) |
+| **NGINX Reverse Proxy (HTTP)** | `80 (TCP)` | Automatic 301 Permanent Redirect to HTTPS |
+| **NGINX Gateway (HTTPS)** | `443 (TCP / UDP)` | **Mandatory HTTPS**: Supports **HTTP/2** (TCP) & **HTTP/3 QUIC** (UDP) + WSS |
 
 ---
 
@@ -122,3 +123,222 @@ Browser URLs:
 - Homepage: [http://localhost:3002](http://localhost:3002)
 - Teacher / Projector Setup: [http://localhost:3002/result](http://localhost:3002/result)
 - Student View: [http://localhost:3002/race](http://localhost:3002/race)
+
+---
+
+## 2. Local Production Testing (Standalone without NGINX)
+
+You can preview the compiled production build locally before setting up a reverse proxy:
+
+```bash
+# 1. Build all packages & frontend
+pnpm --filter="./packages/*" run build
+cd frontend && pnpm run build && cd ..
+
+# 2. Run Backend Race Server (Terminal 1)
+pnpm run race-server
+
+# 3. Run Frontend Production Server (Terminal 2)
+pnpm run preview-frontend
+```
+
+Frontend will be available at `http://localhost:3002` (or your LAN IP `http://<your-ip>:3002`).
+
+---
+
+## 3. Production Deployment on Linux Servers (ARM64 / x86_64)
+
+This architecture is 100% compatible with **Linux ARM64 / aarch64** (e.g. AWS Graviton, Oracle Cloud Ampere A1, Raspberry Pi 4/5, Ampere Altra) and standard **x86_64** servers.
+
+### Step 1: Server Setup (Node.js 24 LTS)
+
+```bash
+# Update system packages
+sudo apt update && sudo apt upgrade -y
+
+# Install basic tools, NGINX, Certbot (SSL), and Git
+sudo apt install -y curl git build-essential nginx certbot python3-certbot-nginx
+
+# Install Node.js 24 LTS via NodeSource
+curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# Verify Node.js version
+node -v           # Must be v24.x.x
+npm -v
+
+# Enable pnpm and install PM2
+sudo corepack enable
+sudo npm install -g pnpm pm2
+
+# Configure Firewall (Allow TCP 80, TCP 443, and UDP 443 for HTTP/3 QUIC)
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw allow 443/udp
+sudo ufw enable
+```
+
+### Step 2: Clone & Build Project
+
+```bash
+# Create and prepare web directory
+sudo mkdir -p /var/www/typingtest
+sudo chown -R $USER:$USER /var/www/typingtest
+
+cd /var/www/typingtest
+git clone <YOUR_REPOSITORY_URL> .
+
+# Install monorepo dependencies
+pnpm install --frozen-lockfile
+
+# Build internal packages & frontend
+pnpm --filter="./packages/*" run build
+cd frontend && pnpm run build && cd ..
+```
+
+### Step 3: Run Services with PM2
+
+Run both services in the background using PM2:
+
+```bash
+cd /var/www/typingtest
+
+# 1. Start Backend Race WebSocket Server (Port 5005)
+pm2 start "node backend/node_modules/tsx/dist/cli.mjs backend/src/race/standalone-server.ts" --name "typingtest-race"
+
+# 2. Start Frontend Web Server (Port 3002)
+pm2 start "pnpm --filter @monkeytype/frontend run start" --name "typingtest-frontend"
+
+# Persist processes across server reboots
+pm2 save
+pm2 startup
+```
+
+---
+
+## 4. NGINX Reverse Proxy Setup (Mandatory HTTPS, HTTP/2, & HTTP/3 QUIC)
+
+In production, NGINX acts as a **Secure Reverse Proxy Gateway** enforcing SSL/TLS encryption, automatic HTTP-to-HTTPS redirect, and acceleration with **HTTP/2** (TCP) and **HTTP/3** (QUIC over UDP).
+
+### Step 4A: Obtain a Free SSL Certificate (Let's Encrypt)
+Ensure your domain (e.g. `typing.myschool.edu`) points to your server's public IP address, then run:
+
+```bash
+sudo certbot certonly --nginx -d your-domain.com
+```
+
+### Step 4B: Install NGINX Configuration File
+Create `/etc/nginx/sites-available/typingtest`:
+
+```nginx
+# Upstream to internal backend & frontend services
+upstream typingtest_frontend {
+    server 127.0.0.1:3002;
+    keepalive 32;
+}
+
+upstream typingtest_backend {
+    server 127.0.0.1:5005;
+    keepalive 32;
+}
+
+# 1. HTTP Server - Automatic 301 Permanent Redirect to HTTPS
+server {
+    listen 80;
+    listen [::]:80;
+    server_name your-domain.com;
+
+    # Redirect all plain HTTP traffic directly to HTTPS
+    return 301 https://$host$request_uri;
+}
+
+# 2. HTTPS Server - HTTP/2 & HTTP/3 (QUIC)
+server {
+    # Port 443 TCP: HTTPS & HTTP/2
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+
+    # Port 443 UDP: HTTP/3 (QUIC)
+    listen 443 quic reuseport;
+    listen [::]:443 quic reuseport;
+    http3 on;
+    quic_retry on;
+
+    server_name your-domain.com;
+
+    # SSL/TLS Certificate Paths
+    ssl_certificate /etc/letsencrypt/live/your-domain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
+
+    # Modern TLS Security Configuration
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 1d;
+    ssl_session_tickets off;
+
+    # HTTP/3 Advertisement Header for Browsers (Chrome, Edge, Firefox, Safari)
+    add_header Alt-Svc 'h3=":443"; ma=86400' always;
+
+    # Security Headers
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Frame-Options SAMEORIGIN always;
+    add_header X-Content-Type-Options nosniff always;
+
+    # Gzip Compression
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript image/svg+xml;
+
+    # Location 1: Real-time Race WebSocket (WSS)
+    location /ws/ {
+        proxy_pass http://typingtest_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
+    }
+
+    # Location 2: REST API & Backend Health
+    location ~ ^/(configuration|health) {
+        proxy_pass http://typingtest_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+
+    # Location 3: Frontend Web Application (SolidJS)
+    location / {
+        proxy_pass http://typingtest_frontend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_buffering off;
+    }
+}
+```
+
+> **NGINX Compatibility Notes**:
+> - The `http2 on;` directive is supported in NGINX $\ge 1.25.1$. On older NGINX versions ($< 1.25.1$), use `listen 443 ssl http2;`.
+> - HTTP/3 (QUIC) operates over **UDP port 443**. Ensure your cloud security groups / firewall (AWS Security Group, GCP Firewall, Oracle Cloud Security List) have opened **UDP port 443**.
+> - HTTPS is strictly required for full Clipboard API support (`Copy Link`) and secure WebSocket (`wss://`) across all modern browsers.
+
+### Step 4C: Enable Configuration & Reload NGINX
+```bash
+sudo ln -s /etc/nginx/sites-available/typingtest /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```

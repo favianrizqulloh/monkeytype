@@ -95,11 +95,12 @@ Aplikasi perlombaan mengetik cepat (*typing speed competition*) berbasis web yan
 
 ## Arsitektur & Port
 
-| Komponen | Port | Deskripsi |
+| Komponen | Port / Protokol | Deskripsi |
 |---|---|---|
-| **Frontend Web** | `3002` | SolidJS (`.tsx`) + TailwindCSS UI (Dev atau Production Preview) |
-| **Backend Race Server** | `5005` | WebSocket `ws://.../ws/race` + Mock REST API (`0.0.0.0`) |
-| **NGINX Reverse Proxy** | `80` / `443` | Reverse proxy gateway (Bisa di server sama atau server berbeda) |
+| **Frontend Web** | `3002 (HTTP)` | SolidJS (`.tsx`) + TailwindCSS UI (Internal Server) |
+| **Backend Race Server** | `5005 (HTTP/WS)` | WebSocket `ws://.../ws/race` + Mock REST API (`0.0.0.0`) |
+| **NGINX Reverse Proxy (HTTP)** | `80 (TCP)` | Redirect otomatis (301 Permanent) ke HTTPS |
+| **NGINX Gateway (HTTPS)** | `443 (TCP / UDP)` | **Wajib HTTPS**: Mendukung **HTTP/2** (TCP) & **HTTP/3 QUIC** (UDP) + WSS |
 
 ---
 
@@ -163,8 +164,8 @@ Arsitektur aplikasi ini 100% kompatibel dengan prosesor **Linux ARM64 / aarch64*
 # Update sistem
 sudo apt update && sudo apt upgrade -y
 
-# Instal dependensi dasar, Nginx, dan Git
-sudo apt install -y curl git build-essential nginx
+# Instal dependensi dasar, Nginx, Certbot (SSL), dan Git
+sudo apt install -y curl git build-essential nginx certbot python3-certbot-nginx
 
 # Instal Node.js 24 LTS via NodeSource
 curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
@@ -177,6 +178,12 @@ npm -v
 # Aktifkan pnpm & instal PM2
 sudo corepack enable
 sudo npm install -g pnpm pm2
+
+# Buka port firewall (Wajib buka TCP 80, TCP 443, dan UDP 443 untuk HTTP/3 QUIC)
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw allow 443/udp
+sudo ufw enable
 ```
 
 ### Langkah 2: Clone & Build Proyek
@@ -217,11 +224,22 @@ pm2 startup
 
 ---
 
-## 4. Konfigurasi Reverse Proxy NGINX (Pure Reverse Proxy)
+## 4. Konfigurasi Reverse Proxy NGINX (Wajib HTTPS, HTTP/2, & HTTP/3 QUIC)
 
-Pada model ini, NGINX **tidak membaca file statis secara langsung**, melainkan murni bertindak sebagai **Reverse Proxy Gateway**:
+Pada mode produksi, NGINX diatur sebagai **Reverse Proxy Gateway Aman** dengan enkripsi SSL/TLS, pengalihan otomatis HTTP ke HTTPS, serta akselerasi **HTTP/2** (TCP) dan **HTTP/3** (QUIC via UDP).
+
+### Langkah 4A: Dapatkan Sertifikat SSL Gratis (Let's Encrypt)
+Pastikan domain Anda (misal `typing.sekolahku.sch.id`) sudah mengarah ke IP publik server, lalu jalankan:
+
+```bash
+sudo certbot certonly --nginx -d domain-anda.com
+```
+
+### Langkah 4B: Pasang File Konfigurasi NGINX
+Buat file `/etc/nginx/sites-available/typingtest`:
 
 ```nginx
+# Upstream ke internal backend & frontend service
 upstream typingtest_frontend {
     server 127.0.0.1:3002;
     keepalive 32;
@@ -232,17 +250,59 @@ upstream typingtest_backend {
     keepalive 32;
 }
 
+# 1. HTTP Server - Pengalihan Otomatis (301) ke HTTPS
 server {
     listen 80;
     listen [::]:80;
     server_name domain-anda.com;
 
+    # Alihkan seluruh trafik HTTP tanpa enkripsi langsung ke HTTPS
+    return 301 https://$host$request_uri;
+}
+
+# 2. HTTPS Server - HTTP/2 & HTTP/3 (QUIC)
+server {
+    # Port 443 TCP: HTTPS & HTTP/2
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+
+    # Port 443 UDP: HTTP/3 berbasis QUIC
+    listen 443 quic reuseport;
+    listen [::]:443 quic reuseport;
+    http3 on;
+    quic_retry on;
+
+    server_name domain-anda.com;
+
+    # Path Sertifikat SSL/TLS
+    ssl_certificate /etc/letsencrypt/live/domain-anda.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/domain-anda.com/privkey.pem;
+
+    # Protokol & Pengaturan Keamanan TLS Modern
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 1d;
+    ssl_session_tickets off;
+
+    # Header Iklan HTTP/3 untuk Browser (Chrome, Edge, Firefox, Safari)
+    add_header Alt-Svc 'h3=":443"; ma=86400' always;
+
+    # Header Keamanan Standar
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Frame-Options SAMEORIGIN always;
+    add_header X-Content-Type-Options nosniff always;
+
+    # Kompresi Gzip
     gzip on;
     gzip_vary on;
     gzip_proxied any;
     gzip_comp_level 6;
     gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript image/svg+xml;
 
+    # Lokasi 1: WebSocket Balapan Realtime (WSS)
     location /ws/ {
         proxy_pass http://typingtest_backend;
         proxy_http_version 1.1;
@@ -251,33 +311,40 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto https;
         proxy_read_timeout 86400s;
         proxy_send_timeout 86400s;
     }
 
+    # Lokasi 2: REST API & Status Backend
     location ~ ^/(configuration|health) {
         proxy_pass http://typingtest_backend;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto https;
     }
 
+    # Lokasi 3: Frontend Web Application (SolidJS)
     location / {
         proxy_pass http://typingtest_frontend;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto https;
         proxy_buffering off;
     }
 }
 ```
 
-Aktifkan konfigurasi & reload NGINX:
+> **Catatan Kompatibilitas NGINX**:
+> - Direktif `http2 on;` digunakan pada NGINX versi $\ge 1.25.1$. Pada NGINX versi lama ($< 1.25.1$), gunakan sintaks `listen 443 ssl http2;`.
+> - Fitur HTTP/3 (QUIC) berjalan di atas protokol **UDP port 443**. Pastikan firewall VPS/cloud provider (AWS Security Group, GCP Firewall, Oracle Cloud Security List) telah membuka port **443 UDP**.
+> - Enkripsi HTTPS wajib digunakan di lingkungan produksi agar fitur Clipboard API (`Salin Link`) dan WebSocket aman (`wss://`) dapat bekerja penuh di semua browser.
+
+### Langkah 4C: Aktifkan Konfigurasi & Muat Ulang NGINX
 ```bash
 sudo ln -s /etc/nginx/sites-available/typingtest /etc/nginx/sites-enabled/
 sudo nginx -t
