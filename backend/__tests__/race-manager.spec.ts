@@ -145,5 +145,20 @@ describe("RaceManager", () => {
     const next1 = manager.startNextAttempt("quote-session", "p1");
     expect(next1).toBeDefined();
     expect(next1?.passage.text.length).toBeGreaterThan(50);
+
+    // Verify child-friendly wholesome educational quotes without romance keywords
+    const romanceWords = [
+      "cinta",
+      "pacar",
+      "patah hati",
+      "selingkuh",
+      "asmara",
+      "jodoh",
+      "kekasih",
+    ];
+    const textLower = qSession.text.toLowerCase();
+    for (const w of romanceWords) {
+      expect(textLower).not.toContain(w);
+    }
   });
 });

@@ -315,54 +315,13 @@ function loadWordlist(language: "indonesian" | "english"): string[] {
 function loadQuotes(
   language: "indonesian" | "english",
 ): { text: string; source: string }[] {
-  try {
-    const filename =
-      language === "english" ? "quotes/english.json" : "quotes/indonesian.json";
-    const fullPath = resolveStaticPath(filename);
-    if (fs.existsSync(fullPath)) {
-      const parsed = JSON.parse(fs.readFileSync(fullPath, "utf-8")) as {
-        quotes?: { text: string; source: string }[];
-      };
-      if (Array.isArray(parsed.quotes) && parsed.quotes.length > 0) {
-        if (language === "indonesian") {
-          const bannedWords = [
-            "mulas",
-            "buang air",
-            "tisue",
-            "patah hati",
-            "patah-hati",
-            "selingkuh",
-            "pacar",
-            "jodoh",
-          ];
-          const bannedSources = [
-            "Raditya Dika",
-            "Boy Candra",
-            "Fiersa Besari",
-            "Sujiwo Tejo",
-            "Sujiwo Tedjo",
-          ];
-          const filtered = parsed.quotes.filter((q) => {
-            const textLower = q.text.toLowerCase();
-            if (bannedSources.some((b) => q.source.includes(b))) return false;
-            if (bannedWords.some((b) => textLower.includes(b))) return false;
-            return true;
-          });
-          const curated = indonesianPassages.map((p) => ({
-            text: p.text,
-            source: p.author,
-          }));
-          return [...curated, ...filtered];
-        }
-        return parsed.quotes;
-      }
-    }
-  } catch {}
-
-  if (language === "english") {
-    return englishQuotesFallback;
+  if (language === "indonesian") {
+    return indonesianPassages.map((p) => ({
+      text: p.text,
+      source: p.author,
+    }));
   }
-  return indonesianPassages.map((p) => ({ text: p.text, source: p.author }));
+  return englishQuotesFallback;
 }
 
 export function generatePassage(

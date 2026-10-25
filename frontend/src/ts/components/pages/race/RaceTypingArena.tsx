@@ -32,6 +32,7 @@ export type RaceTypingArenaProps = {
 };
 
 export function RaceTypingArena(props: RaceTypingArenaProps): JSXElement {
+  let containerRef: HTMLDivElement | undefined;
   let inputRef: HTMLInputElement | undefined;
 
   const [typed, setTyped] = createSignal("");
@@ -59,6 +60,13 @@ export function RaceTypingArena(props: RaceTypingArenaProps): JSXElement {
     ),
   );
 
+  createEffect(() => {
+    targetText();
+    if (containerRef) {
+      containerRef.scrollTop = 0;
+    }
+  });
+
   onMount(() => {
     setStartTime(Date.now());
     if (inputRef) {
@@ -85,6 +93,38 @@ export function RaceTypingArena(props: RaceTypingArenaProps): JSXElement {
       getRaceStatus() === "racing"
     ) {
       inputRef.focus();
+    }
+  };
+
+  const adjustAutoScroll = (): void => {
+    if (!containerRef) return;
+    const currentSpan = containerRef.querySelector(
+      '[data-current="true"]',
+    ) as HTMLElement | null;
+    if (!currentSpan) return;
+
+    const currentTop = currentSpan.offsetTop;
+    const paddingTop = 24;
+    const lineHeight = 39;
+    const lineIndex = Math.max(
+      0,
+      Math.floor((currentTop - paddingTop) / lineHeight),
+    );
+
+    // Auto-scroll when nearing the 3rd visible line (lineIndex >= 2)
+    if (lineIndex >= 2) {
+      const targetScroll = (lineIndex - 1) * lineHeight;
+      if (Math.abs(containerRef.scrollTop - targetScroll) > 4) {
+        containerRef.scrollTo({
+          top: targetScroll,
+          behavior: "smooth",
+        });
+      }
+    } else if (containerRef.scrollTop > 0) {
+      containerRef.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
     }
   };
 
@@ -139,6 +179,8 @@ export function RaceTypingArena(props: RaceTypingArenaProps): JSXElement {
     );
     sendProgress(currentProg, calculatedWpm, acc);
 
+    requestAnimationFrame(adjustAutoScroll);
+
     if (val.length >= targetText().length && targetText().length > 0) {
       completeTest(calculatedWpm, acc);
     }
@@ -162,6 +204,9 @@ export function RaceTypingArena(props: RaceTypingArenaProps): JSXElement {
     setLiveAccuracy(100);
     setStartTime(Date.now());
     setIsFinished(false);
+    if (containerRef) {
+      containerRef.scrollTo({ top: 0, behavior: "smooth" });
+    }
     setTimeout(() => {
       inputRef?.focus();
     }, 50);
@@ -314,56 +359,64 @@ export function RaceTypingArena(props: RaceTypingArenaProps): JSXElement {
           </div>
         }
       >
-        <div class="relative min-h-[160px] cursor-text rounded-double border border-sub/20 bg-bg/90 p-8 shadow-inner transition-all hover:border-sub/40">
-          <input
-            ref={(el) => (inputRef = el)}
-            type="text"
-            class="pointer-events-auto absolute inset-0 h-full w-full cursor-text opacity-0"
-            value={typed()}
-            onInput={handleInput}
-            autocomplete="off"
-            // oxlint-disable-next-line react/no-unknown-property
-            autocapitalize="off"
-            // oxlint-disable-next-line react/no-unknown-property
-            spellcheck={false}
-            disabled={
-              isFinished() ||
-              getRemainingSeconds() <= 0 ||
-              getRaceStatus() !== "racing"
-            }
-          />
+        <div class="flex flex-col gap-3">
+          <div
+            ref={(el) => (containerRef = el)}
+            class="relative h-[185px] cursor-text overflow-y-auto scroll-smooth rounded-double border border-sub/20 bg-bg/90 p-6 shadow-inner transition-all select-none hover:border-sub/40"
+            onClick={handleArenaClick}
+          >
+            <input
+              ref={(el) => (inputRef = el)}
+              type="text"
+              class="pointer-events-none absolute top-0 left-0 h-0 w-0 opacity-0"
+              value={typed()}
+              onInput={handleInput}
+              autocomplete="off"
+              // oxlint-disable-next-line react/no-unknown-property
+              autocapitalize="off"
+              // oxlint-disable-next-line react/no-unknown-property
+              spellcheck={false}
+              disabled={
+                isFinished() ||
+                getRemainingSeconds() <= 0 ||
+                getRaceStatus() !== "racing"
+              }
+            />
 
-          <div class="relative font-mono text-2xl leading-relaxed tracking-wide select-none">
-            <Index each={targetText().split("")}>
-              {(char, index) => {
-                const isTyped = () => index < typed().length;
-                const isCurrent = () => index === typed().length;
-                const isCorrect = () => isTyped() && typed()[index] === char();
-                const isError = () => isTyped() && !isCorrect();
+            <div class="relative font-mono text-2xl leading-relaxed tracking-wide select-none">
+              <Index each={targetText().split("")}>
+                {(char, index) => {
+                  const isTyped = () => index < typed().length;
+                  const isCurrent = () => index === typed().length;
+                  const isCorrect = () =>
+                    isTyped() && typed()[index] === char();
+                  const isError = () => isTyped() && !isCorrect();
 
-                return (
-                  <span
-                    class={cn("relative transition-colors duration-75", {
-                      "font-medium text-text": isCorrect(),
-                      "rounded-xs bg-error/20 px-0.5 text-error": isError(),
-                      "text-sub opacity-50": !isTyped() && !isCurrent(),
-                      "font-semibold text-main": isCurrent(),
-                    })}
-                  >
-                    <Show when={isCurrent() && !isFinished()}>
-                      <span class="absolute top-[10%] -left-[2px] h-[80%] w-[3px] animate-pulse rounded-full bg-caret shadow-[0_0_8px_var(--caret-color)]"></span>
-                    </Show>
-                    {char()}
-                  </span>
-                );
-              }}
-            </Index>
+                  return (
+                    <span
+                      data-current={isCurrent() ? "true" : undefined}
+                      class={cn("relative transition-colors duration-75", {
+                        "font-medium text-text": isCorrect(),
+                        "rounded-xs bg-error/20 px-0.5 text-error": isError(),
+                        "text-sub opacity-50": !isTyped() && !isCurrent(),
+                        "font-semibold text-main": isCurrent(),
+                      })}
+                    >
+                      <Show when={isCurrent() && !isFinished()}>
+                        <span class="absolute top-[10%] -left-[2px] h-[80%] w-[3px] animate-pulse rounded-full bg-caret shadow-[0_0_8px_var(--caret-color)]"></span>
+                      </Show>
+                      {char()}
+                    </span>
+                  );
+                }}
+              </Index>
+            </div>
           </div>
 
           <Show when={getPassageAuthor().length > 0}>
-            <div class="mt-6 flex items-center justify-end gap-2 text-sm text-sub italic">
+            <div class="flex items-center justify-end gap-2 px-2 text-sm text-sub italic">
               <span>—</span>
-              <span>{getPassageAuthor()}</span>
+              <span class="font-medium text-main/90">{getPassageAuthor()}</span>
             </div>
           </Show>
         </div>
