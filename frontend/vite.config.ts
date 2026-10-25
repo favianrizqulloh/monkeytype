@@ -348,11 +348,13 @@ export default defineConfig(({ mode }): UserConfig => {
       port: 3002,
       host: "0.0.0.0",
       open: false,
+      allowedHosts: true,
     },
     server: {
       open: env["SERVER_OPEN"] !== "false",
       port: 3002,
       host: env["BACKEND_URL"] !== undefined,
+      allowedHosts: true,
       proxy: {
         "/ws": {
           target: "ws://localhost:5005",
