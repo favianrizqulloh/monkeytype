@@ -19,8 +19,8 @@ A web-based typing speed competition application combining the modern aesthetics
   - Students enter their **Full Name** and **Session ID** (6 digits) shown on the teacher's projector (or auto-filled when using a direct link).
 - **Full Monkeytype-Style Difficulty & Mode Selector (`/result`)**:
   - **Modes**:
-    - `time`: 15s, 30s, 60s, 120s, or **180s (3-minute default)**.
-    - `words`: 10, 25, 50, or 100 words.
+    - `time`: Flexible durations: 15s, 30s, 60s (1m), 120s (2m), **180s (3-minute default)**, **300s (5m)**, or **600s (10m)**.
+    - `words`: Word target counts: 10, 25, 50, or 100 words.
     - `quote`: Random inspirational and educational passages.
     - `custom`: Custom text or exercise paragraph provided by the teacher.
   - **Toggles**:
@@ -52,40 +52,40 @@ A web-based typing speed competition application combining the modern aesthetics
    - Navigate to:
      ```text
      http://localhost:3002/result
-     (or click "Mode Kompetisi" on the homepage)
+     (or click "Buka Sesi Lomba (Host / Guru)" on the homepage)
      ```
-   - Select the desired **Mode** (`time`, `words`, `quote`, or `custom`).
-   - Configure word count / duration, toggle **punctuation** and **numbers** as needed.
-   - Select **Language** (Bahasa Indonesia or English).
-   - Enter a **Session ID** (or click **Randomize Code** for a random 6-digit code).
+   - Configure **Mode & Duration**: Choose flexible durations from **15s, 30s, 60s (1m), 120s (2m), 180s (3m default), 300s (5m), up to 600s (10m)**, or choose words/quote/custom exercise mode.
+   - Adjust **Difficulty & Language**: Toggle **punctuation** (caps & symbols) and **numbers** as needed, and select **Bahasa Indonesia** or **English**.
+   - Set a **Session ID** (or click **Randomize Code** for a fresh 6-digit code).
    - Click **Open Competition Room (Projector)**.
 2. **Display on Projector / Smart TV**:
-   - Project the tab onto the classroom display.
-   - Click the **Fullscreen** button in the top right corner.
+   - Project the browser tab onto the classroom display or Smart TV.
+   - Click the **Fullscreen** button in the top right corner for full display view.
 3. **Share Link / Session Code**:
-   - Click **Copy Link** to share the URL or direct students to open `/race` and enter the session code.
+   - Click **Copy Link** to copy the student URL (works seamlessly across LAN or online domains), or direct students to open `/race` on their computers and enter the 6-digit code.
 4. **Start the Race**:
-   - Monitor the joined students on the TypeRacer track.
-   - Click **Start Race** once all students are present. A synchronized 3-2-1 countdown begins on all screens.
-5. **After the Race**:
-   - When time expires, typing is automatically locked. The podium awards 1st (Gold), 2nd (Silver), and 3rd (Bronze) based on Best WPM.
-   - Click **Rematch** to start another round with fresh text.
+   - Monitor students connecting on the real-time TypeRacer track.
+   - Once all students have joined, click **Start Race**. A synchronized 3-2-1 countdown begins on all screens.
+5. **After the Race & Rematch**:
+   - When time expires, typing is automatically locked on all student devices (*anti-cheat lock*). The podium awards 1st (Gold), 2nd (Silver), and 3rd (Bronze) based on **Highest WPM (Best Score)**.
+   - Click **Rematch** to start another round with fresh text without having to recreate the session.
 
 ---
 
 ### B. For Students
 1. **Join the Competition**:
    - Navigate to `http://<teacher-ip>:3002/race` on your device (or click **Gabung Arena Lomba** on the homepage).
-   - Enter your **Full Name** and the **Session ID** (6 digits) displayed on the teacher's projector screen (or automatically filled when using a direct link).
+   - Enter your **Full Name** and the **Session ID** (6 digits) shown on the teacher's projector (or auto-filled when opening a shared direct link).
    - Click **Gabung Arena (Join Arena)**.
 2. **Wait in Lobby & Countdown**:
-   - Wait for the teacher to start the race.
-   - When the countdown begins (3... 2... 1...), position your fingers on the *home row* keys (ASDF JKL;).
+   - Wait in the lobby for the teacher to start the race.
+   - When the animated countdown begins (**3... 2... 1...**), position your fingers on the *home row* keys (ASDF JKL;).
 3. **Type & Repeat for Best Score**:
-   - Type the passage as quickly and accurately as possible.
-   - If you finish before time expires, press **Enter** to begin another round.
-   - Your highest score among all rounds will be your final recorded score.
-   - When time runs out, typing is automatically locked and your final ranking is displayed.
+   - Type the passage as quickly and accurately as possible. Misspelled letters are highlighted in red.
+   - The competition runs simultaneously for the teacher-selected duration (15s to 10 minutes).
+   - **Multi-Attempt Feature**: If you finish typing the passage before time expires, immediately press **Enter** to start typing the next round!
+   - Your highest score among all completed rounds will be your recorded **Best Score** on the podium.
+   - When time runs out, typing is strictly locked and your final ranking is displayed.
 
 ---
 

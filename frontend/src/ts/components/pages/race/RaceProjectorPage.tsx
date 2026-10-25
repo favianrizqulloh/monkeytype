@@ -34,6 +34,20 @@ function generateRandomCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+function formatDurationLabel(sec: number): string {
+  if (sec >= 60) {
+    return `${sec} (${sec / 60}m)`;
+  }
+  return `${sec}`;
+}
+
+function formatHeaderDuration(sec: number): string {
+  if (sec >= 60) {
+    return `${sec} Detik / ${Math.round(sec / 60)} Menit`;
+  }
+  return `${sec} Detik`;
+}
+
 export function RaceProjectorPage(): JSXElement {
   const [isFullscreen, setIsFullscreen] = createSignal(false);
   const [copiedLink, setCopiedLink] = createSignal(false);
@@ -287,7 +301,7 @@ export function RaceProjectorPage(): JSXElement {
                   {/* Sub-bar 3: Values by Mode */}
                   <div class="rounded-radius flex items-center gap-1 bg-sub-alt/60 p-1">
                     <Show when={setupMode() === "time"}>
-                      <For each={[15, 30, 60, 120, 180]}>
+                      <For each={[15, 30, 60, 120, 180, 300, 600]}>
                         {(sec) => (
                           <button
                             type="button"
@@ -297,8 +311,9 @@ export function RaceProjectorPage(): JSXElement {
                                 : "text-sub hover:text-text"
                             }`}
                             onClick={() => setSetupModeValue(sec)}
+                            title={`${sec} detik (${sec >= 60 ? `${sec / 60} menit` : ""})`}
                           >
-                            {sec}
+                            {formatDurationLabel(sec)}
                           </button>
                         )}
                       </For>
@@ -418,26 +433,46 @@ export function RaceProjectorPage(): JSXElement {
               </div>
 
               {/* Panduan Guru Card */}
-              <div class="rounded-radius flex flex-col gap-2 border border-sub/20 bg-bg/80 p-4 text-xs text-sub">
+              <div class="rounded-radius flex flex-col gap-2.5 border border-sub/20 bg-bg/80 p-4 text-xs text-sub">
                 <div class="flex items-center gap-2 font-bold text-text">
                   <Fa icon="fa-chalkboard-teacher" class="text-main" />
-                  <span>Petunjuk Penggunaan untuk Guru / Pengawas:</span>
+                  <span>
+                    Petunjuk & Panduan Penggunaan untuk Guru / Pengawas:
+                  </span>
                 </div>
                 <ol class="list-inside list-decimal space-y-1.5 pl-1 text-sub">
                   <li>
-                    Pilih Mode, Bahasa, Tanda Baca, Angka, dan Kode Sesi di
-                    atas.
+                    <b>Pilih Mode & Durasi:</b> Tentukan durasi pengetikan (15
+                    detik hingga 10 menit, standar 3–5 menit), atau pilih mode
+                    kata/kutipan/teks kustom materi pelajaran.
                   </li>
                   <li>
-                    Klik <b>&quot;Buka Ruang Lomba&quot;</b> untuk membuka layar
-                    proyektor.
+                    <b>Atur Kesulitan & Bahasa:</b> Aktifkan <i>punctuation</i>{" "}
+                    (huruf kapital & tanda baca) dan <i>numbers</i> (angka) bila
+                    dibutuhkan, serta tentukan Bahasa Indonesia atau Inggris.
                   </li>
                   <li>
-                    Tampilkan layar tersebut ke Proyektor / Smart TV kelas.
+                    <b>Buka Ruang Lomba:</b> Klik{" "}
+                    <b>&quot;Buka Ruang Lomba (Proyektor)&quot;</b> lalu
+                    tampilkan layar ke Proyektor atau Smart TV kelas (tekan ikon
+                    Layar Penuh di pojok kanan atas).
                   </li>
                   <li>
-                    Bagikan Link atau Kode Sesi kepada siswa untuk diakses via
-                    browser masing-masing.
+                    <b>Ajak Murid Bergabung:</b> Klik{" "}
+                    <b>&quot;Salin Link&quot;</b> untuk membagikan tautan
+                    langsung atau minta murid membuka <b>/race</b> di komputer
+                    masing-masing dan memasukkan Kode Sesi 6-digit.
+                  </li>
+                  <li>
+                    <b>Mulai & Pantau Balapan:</b> Setelah seluruh murid hadir
+                    di lintasan, klik <b>&quot;Mulai Lomba&quot;</b>. Countdown
+                    3 detik dan timer akan tersinkronisasi otomatis.
+                  </li>
+                  <li>
+                    <b>Sistem Penilaian (Best Score):</b> Murid yang selesai
+                    sebelum waktu habis dapat menekan Enter untuk mengulang;
+                    sistem otomatis mencatat skor <b>WPM Tertinggi</b> murid di
+                    podium juara.
                   </li>
                 </ol>
               </div>
@@ -492,7 +527,8 @@ export function RaceProjectorPage(): JSXElement {
               </div>
               <p class="text-xs text-sub">
                 Lomba Mengetik Cepat Kelas Komputer (Durasi{" "}
-                {getSessionDuration()} Detik — Skor WPM Tertinggi)
+                {formatHeaderDuration(getSessionDuration())} — Skor WPM
+                Tertinggi)
               </p>
             </div>
           </div>
@@ -824,27 +860,39 @@ export function RaceProjectorPage(): JSXElement {
           </Show>
 
           {/* Footer Guide for Teacher */}
-          <div class="rounded-radius flex flex-col gap-2 border border-sub/20 bg-sub-alt/20 p-4 text-xs text-sub">
+          <div class="rounded-radius flex flex-col gap-2.5 border border-sub/20 bg-sub-alt/20 p-4 text-xs text-sub">
             <div class="flex items-center gap-2 font-bold text-text">
               <Fa icon="fa-info-circle" class="text-main" />
-              <span>Instruksi Admin Guru / Pengawas:</span>
+              <span>Instruksi & Alur Perlombaan untuk Guru / Pengawas:</span>
             </div>
-            <p>
-              1. Klik tombol <b>&quot;Salin Link&quot;</b> untuk menyalin URL
-              lomba siswa, lalu bagikan ke grup kelas atau arahkan siswa
-              mengetik <b class="text-text">{window.location.origin}/race</b>{" "}
-              dengan Kode Sesi <b class="text-main">{getSessionId()}</b>.
-            </p>
-            <p>
-              2. Setelah seluruh nama siswa muncul di lintasan TypeRacer, tekan{" "}
-              <b>&quot;Mulai Lomba&quot;</b> untuk hitungan mundur 3 detik
-              serentak.
-            </p>
-            <p>
-              3. Siswa dapat mengetik berulang kali selama batas waktu sesi.
-              Papan skor dan podium juara akan otomatis mengurutkan siswa
-              berdasarkan skor <b>WPM tertinggi (Best Score)</b> mereka.
-            </p>
+            <ul class="list-inside list-disc space-y-1 pl-1 text-sub">
+              <li>
+                <b>Bagikan Akses:</b> Klik <b>&quot;Salin Link&quot;</b> untuk
+                menyalin URL lomba siswa, atau arahkan siswa membuka{" "}
+                <b class="text-text">{window.location.origin}/race</b> dengan
+                Kode Sesi <b class="text-main">{getSessionId()}</b>.
+              </li>
+              <li>
+                <b>Mulai Bersama:</b> Saat semua murid telah muncul di lintasan
+                TypeRacer, klik <b>&quot;Mulai Lomba&quot;</b>. Countdown 3-2-1
+                berjalan serentak di layar proyektor dan layar murid.
+              </li>
+              <li>
+                <b>Multi-Attempt (Best WPM):</b> Selama durasi lomba masih
+                tersisa, murid dapat mengulang pengetikan berkali-kali dengan
+                menekan <b>Enter</b>. Peringkat dihitung dari WPM terbaik.
+              </li>
+              <li>
+                <b>Kunci Otomatis (Anti-Cheat):</b> Ketika timer mencapai 0
+                detik, input pengetikan seluruh siswa otomatis terkunci serentak
+                dan podium juara 1, 2, 3 diumumkan.
+              </li>
+              <li>
+                <b>Ronde Berikutnya:</b> Klik{" "}
+                <b>&quot;Ulangi Lomba (Rematch)&quot;</b> untuk memulai putaran
+                baru dengan teks acak baru tanpa perlu membuat sesi ulang.
+              </li>
+            </ul>
           </div>
         </main>
       </Show>

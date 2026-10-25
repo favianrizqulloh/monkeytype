@@ -19,8 +19,8 @@ Aplikasi perlombaan mengetik cepat (*typing speed competition*) berbasis web yan
   - Murid cukup memasukkan **Nama Lengkap Siswa** dan **Kode Sesi** (6 digit) yang ditampilkan di proyektor guru atau langsung membuka link yang dibagikan guru (kode sesi otomatis terisi).
 - **Pengaturan Tingkat Mode & Kesulitan Lengkap (`/result`)**:
   - **Pilihan Mode**:
-    - `time`: Durasi 15s, 30s, 60s, 120s, atau **180s (3 menit default)**.
-    - `words`: Jumlah kata 10, 25, 50, atau 100 kata.
+    - `time`: Durasi pengetikan fleksibel: 15s, 30s, 60s (1m), 120s (2m), **180s (3m default)**, **300s (5m)**, atau **600s (10m)**.
+    - `words`: Jumlah target kata: 10, 25, 50, atau 100 kata.
     - `quote`: Kutipan inspiratif & edukatif acak.
     - `custom`: Teks materi atau soal pengetikan bebas yang ditentukan oleh guru.
   - **Toggles Tambahan**:
@@ -52,24 +52,23 @@ Aplikasi perlombaan mengetik cepat (*typing speed competition*) berbasis web yan
    - Buka browser di komputer guru dan akses halaman:
      ```text
      http://localhost:3002/result
-     (atau klik tombol "Mode Kompetisi" di halaman utama)
+     (atau klik tombol "Buka Sesi Lomba (Host / Guru)" di halaman utama)
      ```
-   - Pilih **Mode** (`time`, `words`, `quote`, atau `custom`).
-   - Tentukan nilai durasi atau jumlah kata, aktifkan **punctuation** / **numbers** bila diinginkan.
-   - Pilih **Bahasa** (Bahasa Indonesia atau English).
+   - Tentukan **Mode & Durasi**: Pilihan durasi fleksibel mulai dari **15s, 30s, 60s (1m), 120s (2m), 180s (3m default), 300s (5m), hingga 600s (10m)**, atau gunakan mode kata/kutipan/teks kustom materi pelajaran.
+   - Atur **Tingkat Kesulitan & Bahasa**: Aktifkan **punctuation** (huruf kapital & tanda baca) dan **numbers** (angka acak) bila diinginkan, serta pilih **Bahasa Indonesia** atau **English**.
    - Tentukan **Kode Sesi** (atau klik tombol **Acak Kode** untuk 6 digit acak).
    - Klik **Buka Ruang Lomba (Proyektor)**.
 2. **Tampilkan ke Layar Proyektor / Smart TV**:
    - Proyeksikan tab browser tersebut ke layar proyektor kelas.
    - Klik ikon **Layar Penuh (Fullscreen)** di pojok kanan atas agar tampilan proyektor maksimal.
 3. **Bagikan Link / Kode ke Siswa**:
-   - Klik tombol **Salin Link** untuk menyalin link sesi murid, atau arahkan siswa untuk membuka `/race` di browser komputer masing-masing dengan memasukkan Kode Sesi yang tertera di proyektor.
-4. **Mulai Perlombaan**:
-   - Perhatikan daftar siswa yang terhubung di lintasan balapan TypeRacer.
-   - Setelah seluruh siswa bergabung, klik tombol **Mulai Lomba**. Hitungan mundur 3-2-1 akan berjalan serentak di layar proyektor dan semua komputer siswa.
-5. **Setelah Selesai**:
-   - Begitu waktu habis, pengetikan siswa otomatis terkunci. Podium juara menampilkan Juara 1 (Emas), Juara 2 (Perak), dan Juara 3 (Perunggu) berdasarkan WPM Terbaik.
-   - Guru dapat menekan **Ulangi Lomba (Rematch)** untuk ronde balapan berikutnya dengan teks acak baru.
+   - Klik tombol **Salin Link** untuk menyalin link sesi murid (fleksibel di LAN maupun domain online), atau arahkan siswa membuka `/race` di browser komputer masing-masing dengan memasukkan Kode Sesi 6-digit.
+4. **Mulai & Pantau Perlombaan**:
+   - Perhatikan daftar siswa yang terhubung di lintasan balapan TypeRacer secara real-time.
+   - Setelah seluruh siswa bergabung, klik tombol **Mulai Lomba**. Hitungan mundur 3-2-1 dan timer sesi akan berjalan serentak di layar proyektor dan seluruh komputer siswa.
+5. **Setelah Selesai & Ronde Ulang (Rematch)**:
+   - Begitu batas waktu habis, pengetikan siswa otomatis terkunci total (*anti-cheat lock*). Podium juara menampilkan Juara 1 (Emas), Juara 2 (Perak), dan Juara 3 (Perunggu) berdasarkan **WPM Terbaik (Best Score)**.
+   - Guru dapat menekan **Ulangi Lomba (Rematch)** untuk ronde balapan berikutnya dengan teks acak baru tanpa perlu membuat sesi ulang.
 
 ---
 
@@ -80,16 +79,17 @@ Aplikasi perlombaan mengetik cepat (*typing speed competition*) berbasis web yan
      http://<ip-komputer-guru>:3002/race
      (atau klik tombol "Gabung Arena Lomba" di halaman utama)
      ```
-   - Masukkan **Nama Lengkap Siswa** dan **Kode Sesi** (6 digit) yang tertera di layar proyektor guru (jika menggunakan link pembagian dari guru, kode sesi otomatis terisi).
+   - Masukkan **Nama Lengkap Siswa** dan **Kode Sesi** (6 digit) yang tertera di layar proyektor guru (jika membuka tautan yang dibagikan guru, kode sesi otomatis terisi).
    - Klik **Gabung Arena**.
 2. **Menunggu di Lobi & Hitungan Mundur**:
-   - Tunggu hingga guru menekan tombol mulai lomba.
-   - Saat hitungan mundur 3... 2... 1... muncul, bersiaplah di tombol *home row* keyboard (ASDF JKL;).
-3. **Mengetik & Mengulang Putaran (Best Score)**:
-   - Ketik teks pada layar secepat dan seakurat mungkin.
-   - Jika Anda selesai mengetik sebelum waktu habis, tekan tombol **Enter** untuk langsung mengetik putaran berikutnya!
-   - Skor yang akan masuk ke papan juara adalah **skor WPM tertinggi (Best Score)** Anda.
-   - Ketika waktu habis, pengetikan akan otomatis terkunci dan peringkat akhir Anda akan ditampilkan.
+   - Tunggu di lobi hingga guru menekan tombol mulai lomba.
+   - Saat hitungan mundur animasi **3... 2... 1...** muncul di layar, letakkan jari pada posisi *home row* keyboard (ASDF JKL;).
+3. **Mengetik & Mengulang Putaran demi Skor Terbaik (Best Score)**:
+   - Ketik teks pada layar secepat dan seakurat mungkin. Huruf yang salah ketik akan ditandai warna merah.
+   - Durasi berjalan serentak sesuai pilihan guru (15 detik s/d 10 menit).
+   - **Fitur Multi-Attempt**: Jika Anda menyelesaikan teks sebelum waktu habis, segera tekan tombol **Enter** untuk langsung mengetik putaran berikutnya!
+   - Skor yang masuk ke papan juara dan podium adalah **skor WPM tertinggi (Best Score)** dari seluruh putaran yang Anda selesaikan.
+   - Ketika waktu habis, pengetikan otomatis terkunci dan peringkat akhir Anda langsung ditampilkan.
 
 ---
 

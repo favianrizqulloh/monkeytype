@@ -160,21 +160,36 @@ export function RacePage(): JSXElement {
           </form>
 
           {/* Card Petunjuk Siswa */}
-          <div class="rounded-radius flex flex-col gap-2 border border-sub/20 bg-sub-alt/40 p-4 text-xs text-sub">
+          <div class="rounded-radius flex flex-col gap-2.5 border border-sub/20 bg-sub-alt/40 p-4 text-xs text-sub">
             <div class="flex items-center gap-2 font-bold text-text">
               <Fa icon="fa-info-circle" class="text-main" />
               <span>Aturan & Petunjuk Lomba untuk Siswa:</span>
             </div>
             <ul class="list-inside list-disc space-y-1.5 pl-1 text-sub">
-              <li>Durasi lomba berlangsung selama 3 menit secara serentak.</li>
               <li>
-                Jika Anda menyelesaikan paragraf sebelum waktu habis, langsung
-                tekan <b>Enter</b> untuk mengetik putaran berikutnya.
+                <b>Durasi Serentak:</b> Durasi lomba ditentukan oleh guru (misal
+                1, 3, 5, hingga 10 menit) dan berjalan serentak dengan timer
+                tersinkronisasi.
               </li>
               <li>
-                Skor yang diperhitungkan di papan juara adalah{" "}
-                <b class="text-main">WPM Tertinggi (Best Score)</b> yang Anda
-                raih!
+                <b>Posisi Siap:</b> Saat hitungan mundur <b>3... 2... 1...</b>{" "}
+                tampil di layar, letakkan jari pada posisi <i>home row</i>{" "}
+                keyboard (ASDF JKL;).
+              </li>
+              <li>
+                <b>Ketik Akurat & Cepat:</b> Ketik kata yang disorot. Huruf
+                salah akan berwarna merah. Input otomatis terkunci ketika batas
+                waktu habis.
+              </li>
+              <li>
+                <b>Ulangi untuk Skor Tertinggi:</b> Jika Anda menyelesaikan
+                paragraf sebelum waktu habis, segera tekan tombol <b>Enter</b>{" "}
+                untuk mengetik putaran berikutnya!
+              </li>
+              <li>
+                <b>Penilaian Juara:</b> Papan peringkat dan podium menghitung{" "}
+                <b class="text-main">WPM Tertinggi (Best Score)</b> yang
+                berhasil Anda capai dari seluruh putaran.
               </li>
             </ul>
           </div>

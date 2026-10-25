@@ -346,7 +346,9 @@ export function generatePassage(
     else if (sec <= 30) wordCount = 35;
     else if (sec <= 60) wordCount = 65;
     else if (sec <= 120) wordCount = 110;
-    else wordCount = 150;
+    else if (sec <= 180) wordCount = 160;
+    else if (sec <= 300) wordCount = 260; // 5 menit
+    else wordCount = 500; // 10 menit (600 detik)
   }
 
   const selectedWords: string[] = [];

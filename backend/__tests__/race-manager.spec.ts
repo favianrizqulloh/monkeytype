@@ -112,4 +112,22 @@ describe("RaceManager", () => {
     });
     expect(wordsSession.text.split(" ").length).toBe(15);
   });
+
+  it("supports 5-minute (300s) and 10-minute (600s) duration sessions with ample passages", () => {
+    const s5 = manager.getOrCreateSession("session-5m", {
+      durationSeconds: 300,
+      mode: "time",
+      modeValue: 300,
+    });
+    expect(s5.durationSeconds).toBe(300);
+    expect(s5.text.split(" ").length).toBeGreaterThanOrEqual(250);
+
+    const s10 = manager.getOrCreateSession("session-10m", {
+      durationSeconds: 600,
+      mode: "time",
+      modeValue: 600,
+    });
+    expect(s10.durationSeconds).toBe(600);
+    expect(s10.text.split(" ").length).toBeGreaterThanOrEqual(450);
+  });
 });
