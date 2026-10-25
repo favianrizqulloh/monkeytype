@@ -27,8 +27,13 @@ import {
   setSessionDuration,
   setSessionId,
 } from "../../../states/race";
+import {
+  calculateClassStatistics,
+  exportRaceResultsToCsv,
+} from "../../../utils/race-report";
 import { Button } from "../../common/Button";
 import { Fa } from "../../common/Fa";
+import { RaceReportModal } from "./RaceReportModal";
 
 function generateRandomCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -59,6 +64,7 @@ export function RaceProjectorPage(): JSXElement {
   const [isFullscreen, setIsFullscreen] = createSignal(false);
   const [copiedLink, setCopiedLink] = createSignal(false);
   const [hasActiveSession, setHasActiveSession] = createSignal(false);
+  const [isReportOpen, setIsReportOpen] = createSignal(false);
 
   // Setup form signals (Monkeytype-style)
   const [setupSessionId, setSetupSessionId] =
@@ -200,6 +206,14 @@ export function RaceProjectorPage(): JSXElement {
   const top2 = createMemo(() => leaderboard[1]);
   const top3 = createMemo(() => leaderboard[2]);
   const restRanks = createMemo(() => leaderboard.slice(3));
+
+  const effectiveParticipants = createMemo(() =>
+    leaderboard.length > 0 ? leaderboard : studentParticipants(),
+  );
+
+  const classStats = createMemo(() =>
+    calculateClassStatistics(effectiveParticipants()),
+  );
 
   return (
     <div class="flex min-h-screen w-full flex-col bg-bg p-6 text-text select-none">
@@ -593,6 +607,17 @@ export function RaceProjectorPage(): JSXElement {
               </Button>
             </Show>
 
+            <Show when={effectiveParticipants().length > 0}>
+              <Button
+                variant="text"
+                class="rounded-radius flex items-center gap-2 border border-sub/30 bg-sub-alt/40 px-3.5 py-2.5 text-xs font-bold text-text transition-all hover:bg-sub/20"
+                onClick={() => setIsReportOpen(true)}
+              >
+                <Fa icon="fa-file-invoice" />
+                <span>Laporan Nilai</span>
+              </Button>
+            </Show>
+
             <Button
               variant="text"
               class="rounded-radius flex items-center justify-center border border-sub/20 bg-sub-alt/40 p-2.5 text-text hover:bg-sub/20"
@@ -760,6 +785,89 @@ export function RaceProjectorPage(): JSXElement {
                 </span>
               </div>
 
+              {/* Ringkasan Nilai & Statistik Kelas */}
+              <div class="rounded-radius flex flex-wrap items-center justify-between gap-4 border border-sub/20 bg-bg/80 p-5 shadow-inner">
+                <div class="flex flex-wrap items-center gap-6">
+                  <div class="flex flex-col">
+                    <span class="text-[10px] font-bold tracking-wider text-sub uppercase">
+                      Total Peserta
+                    </span>
+                    <span class="font-mono text-2xl font-black text-text">
+                      {classStats().totalParticipants}{" "}
+                      <span class="text-xs font-normal text-sub">Siswa</span>
+                    </span>
+                  </div>
+
+                  <div class="h-8 w-px bg-sub/20"></div>
+
+                  <div class="flex flex-col">
+                    <span class="text-[10px] font-bold tracking-wider text-main uppercase">
+                      Rata-rata WPM
+                    </span>
+                    <span class="font-mono text-2xl font-black text-main">
+                      {classStats().avgWpm}{" "}
+                      <span class="text-xs font-normal text-sub">WPM</span>
+                    </span>
+                  </div>
+
+                  <div class="h-8 w-px bg-sub/20"></div>
+
+                  <div class="flex flex-col">
+                    <span class="text-[10px] font-bold tracking-wider text-sub uppercase">
+                      Rata-rata Akurasi
+                    </span>
+                    <span class="font-mono text-2xl font-black text-text">
+                      {classStats().avgAccuracy}%
+                    </span>
+                  </div>
+
+                  <div class="h-8 w-px bg-sub/20"></div>
+
+                  <div class="flex flex-col">
+                    <span class="text-[10px] font-bold tracking-wider text-main uppercase">
+                      Rata-rata Nilai Kelas
+                    </span>
+                    <div class="flex items-baseline gap-1">
+                      <span class="font-mono text-2xl font-black text-main">
+                        {classStats().avgScore}
+                      </span>
+                      <span class="text-xs text-sub">/ 100</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                  <Button
+                    variant="text"
+                    class="rounded-radius flex items-center gap-2 border border-sub/30 bg-sub-alt/60 px-4 py-2 text-xs font-bold text-text transition-all hover:bg-sub/20"
+                    onClick={() =>
+                      exportRaceResultsToCsv(
+                        getSessionId(),
+                        effectiveParticipants(),
+                        {
+                          durationSeconds: getSessionDuration(),
+                          mode: setupMode(),
+                          modeValue: setupModeValue(),
+                          language: setupLanguage(),
+                        },
+                      )
+                    }
+                  >
+                    <Fa icon="fa-file-csv" />
+                    <span>Export CSV (Excel)</span>
+                  </Button>
+
+                  <Button
+                    variant="text"
+                    class="rounded-radius flex items-center gap-2 bg-main px-4 py-2 text-xs font-bold text-bg shadow-[0_2px_10px_var(--main-color)] transition-all hover:brightness-110 active:scale-95"
+                    onClick={() => setIsReportOpen(true)}
+                  >
+                    <Fa icon="fa-print" />
+                    <span>Cetak Laporan / PDF</span>
+                  </Button>
+                </div>
+              </div>
+
               {/* Top 1-3 Podium Cards */}
               <div class="grid grid-cols-1 items-end gap-6 pt-4 md:grid-cols-3">
                 {/* Juara 2 (Perak) */}
@@ -904,6 +1012,20 @@ export function RaceProjectorPage(): JSXElement {
           </div>
         </main>
       </Show>
+
+      {/* Classroom Assessment Report Modal */}
+      <RaceReportModal
+        isOpen={isReportOpen()}
+        onClose={() => setIsReportOpen(false)}
+        sessionId={getSessionId()}
+        participants={effectiveParticipants()}
+        sessionMeta={{
+          durationSeconds: getSessionDuration(),
+          mode: setupMode(),
+          modeValue: setupModeValue(),
+          language: setupLanguage(),
+        }}
+      />
     </div>
   );
 }

@@ -36,6 +36,10 @@ Aplikasi perlombaan mengetik cepat (*typing speed competition*) berbasis web yan
 - **Kompetisi Multi-Attempt & Skor WPM Terbaik (Best Score)**:
   - Siswa yang menyelesaikan teks sebelum batas waktu berakhir dapat menekan **Enter** untuk mengulang pengetikan demi mengejar WPM lebih tinggi.
   - Papan skor dan podium juara mengurutkan peserta berdasarkan **skor WPM tertinggi (Best WPM)** dari seluruh putaran yang dilakukan.
+- **Export Laporan Nilai & Rekapitulasi Kelas (CSV & Lembar Cetak/PDF)**:
+  - Perhitungan otomatis nilai akhir siswa skala 0–100 (bobot 70% Best WPM + 30% Best Accuracy) lengkap dengan predikat nilai (A/B/C/D).
+  - Ekspor CSV ber-BOM UTF-8 yang kompatibel penuh dengan Microsoft Excel tanpa masalah karakter/encoding.
+  - Lembar penilaian resmi ber-kop sekolah siap cetak / simpan ke PDF dengan tabel peringkat dan kolom tanda tangan guru penguji.
 - **Tombol Salin Link Fleksibel**:
   - Bekerja secara otomatis di semua format domain maupun IP lokal LAN (`http://192.168.x.x:3002`, `http://localhost:3002`, maupun `https://domainku.com`).
 - **Ringan & Bebas Ketergantungan Database**:
@@ -69,6 +73,10 @@ Aplikasi perlombaan mengetik cepat (*typing speed competition*) berbasis web yan
 5. **Setelah Selesai & Ronde Ulang (Rematch)**:
    - Begitu batas waktu habis, pengetikan siswa otomatis terkunci total (*anti-cheat lock*). Podium juara menampilkan Juara 1 (Emas), Juara 2 (Perak), dan Juara 3 (Perunggu) berdasarkan **WPM Terbaik (Best Score)**.
    - Guru dapat menekan **Ulangi Lomba (Rematch)** untuk ronde balapan berikutnya dengan teks acak baru tanpa perlu membuat sesi ulang.
+6. **Export Rekap Nilai Siswa (CSV & Lembar Cetak/PDF)**:
+   - Di bagian atas podium juara, guru dapat melihat kartu **Ringkasan Nilai & Statistik Kelas** (Rata-rata WPM, Rata-rata Akurasi, dan Rata-rata Nilai Siswa).
+   - Klik tombol **Unduh CSV (Excel)** untuk mengunduh berkas `.csv` (berformat UTF-8 BOM) berisi data lengkap seluruh siswa untuk diolah di Microsoft Excel atau Google Sheets.
+   - Klik tombol **Laporan Nilai / Cetak PDF** untuk membuka modal lembar penilaian resmi ber-kop sekolah, tabel peringkat & nilai siswa berpredikat (A/B/C/D), serta kolom tanda tangan guru pengawas yang siap dicetak langsung (`Ctrl + P` / Cetak ke PDF) dengan tata letak bersih.
 
 ---
 

@@ -36,6 +36,10 @@ A web-based typing speed competition application combining the modern aesthetics
 - **Multi-Attempt Competition & Best WPM Ranking**:
   - Students finishing a passage before time runs out can press **Enter** to type subsequent rounds to improve their speed.
   - The projector leaderboard ranks students based on their **Highest WPM (Best Score)** across all completed rounds.
+- **Grade Export & Class Assessment Report (CSV & Printable PDF)**:
+  - Automated student final score calculation on a 0–100 scale (70% Best WPM + 30% Best Accuracy) with letter predicates (A/B/C/D).
+  - Excel-compatible UTF-8 BOM `.csv` download for gradebook imports.
+  - Formal school-headed assessment sheet with ranking table, class summary statistics, and teacher signature box ready for printing (`Ctrl + P` / Save as PDF).
 - **Universal Copy Link**:
   - Works reliably across any domain, public IP, or local LAN IP (`http://192.168.x.x:3002`, `http://localhost:3002`, `https://yourdomain.com`).
 - **Zero-Database Lightweight Architecture**:
@@ -69,6 +73,10 @@ A web-based typing speed competition application combining the modern aesthetics
 5. **After the Race & Rematch**:
    - When time expires, typing is automatically locked on all student devices (*anti-cheat lock*). The podium awards 1st (Gold), 2nd (Silver), and 3rd (Bronze) based on **Highest WPM (Best Score)**.
    - Click **Rematch** to start another round with fresh text without having to recreate the session.
+6. **Export Gradebook & Print Assessment Sheet (CSV & PDF)**:
+   - On the podium view, review the **Class Statistics & Grade Summary** card showing Class Average WPM, Average Accuracy, and Class Average Score.
+   - Click **Unduh CSV (Excel)** to download a UTF-8 BOM CSV sheet compatible with Microsoft Excel and Google Sheets.
+   - Click **Laporan Nilai / Cetak PDF** to view the official assessment report sheet with school header, student ranking table with predicates (A/B/C/D), and instructor signature area ready for printing or saving to PDF.
 
 ---
 
