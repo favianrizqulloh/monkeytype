@@ -8,27 +8,41 @@ echo           MEMULAI APLIKASI TYPINGTEST MULTIPLAYER
 echo ==============================================================
 echo.
 
-set "PATH=C:\Users\User\scoop\apps\nodejs-lts\current;C:\Users\User\scoop\apps\pnpm\current;%PATH%"
+where node >nul 2>nul
+if %ERRORLEVEL% neq 0 (
+    if exist "%USERPROFILE%\scoop\apps\nodejs-lts\current" (
+        set "PATH=%USERPROFILE%\scoop\apps\nodejs-lts\current;%USERPROFILE%\scoop\apps\pnpm\current;%PATH%"
+    )
+)
+
+set "SESSION=%~1"
 
 echo 1. Menjalankan Server Balapan (Port 5005)...
-start "TypingTest Server (Backend 5005)" cmd /k "chcp 65001 >nul && cd /d %~dp0 && set PATH=C:\Users\User\scoop\apps\nodejs-lts\current;C:\Users\User\scoop\apps\pnpm\current;%%PATH%% && node backend/node_modules/tsx/dist/cli.mjs backend/src/race/standalone-server.ts"
+start "TypingTest Server (Backend 5005)" cmd /k "chcp 65001 >nul && cd /d %~dp0 && node backend/node_modules/tsx/dist/cli.mjs backend/src/race/standalone-server.ts"
 
 echo 2. Menjalankan Frontend Web (Port 3002)...
-start "TypingTest Web (Frontend 3002)" cmd /k "chcp 65001 >nul && cd /d %~dp0frontend && set PATH=C:\Users\User\scoop\apps\nodejs-lts\current;C:\Users\User\scoop\apps\pnpm\current;%%PATH%% && node node_modules/vite/bin/vite.js dev --port 3002"
+start "TypingTest Web (Frontend 3002)" cmd /k "chcp 65001 >nul && cd /d %~dp0frontend && node node_modules/vite/bin/vite.js dev --port 3002"
 
 echo.
 echo Menunggu server siap (sekitar 5 detik)...
-timeout /t 5 /nobreak >nul
+ping -n 6 127.0.0.1 >nul
 
 echo 3. Membuka Browser Otomatis:
-echo    - Layar Pengajar (Proyektor): http://localhost:3002/result908235
-echo    - Layar Murid (Siswa)       : http://localhost:3002/race?session=908235
+if defined SESSION (
+    echo    - Layar Pengajar (Proyektor): http://localhost:3002/result/%SESSION%
+    echo    - Layar Murid (Siswa)       : http://localhost:3002/race?session=%SESSION%
+    start http://localhost:3002/result/%SESSION%
+    ping -n 3 127.0.0.1 >nul
+    start http://localhost:3002/race?session=%SESSION%
+) else (
+    echo    - Layar Pengajar (Proyektor): http://localhost:3002/result
+    echo    - Layar Murid (Siswa)       : http://localhost:3002/race
+    start http://localhost:3002/result
+    ping -n 3 127.0.0.1 >nul
+    start http://localhost:3002/race
+)
+
 echo.
-
-start http://localhost:3002/result908235
-timeout /t 2 /nobreak >nul
-start http://localhost:3002/race?session=908235
-
 echo ==============================================================
 echo Selesai! Kedua jendela terminal backend dan frontend aktif.
 echo Jangan tutup kedua jendela terminal tersebut selama pengujian.
