@@ -42,6 +42,7 @@ export function RaceTypingArena(props: RaceTypingArenaProps): JSXElement {
   const [liveWpm, setLiveWpm] = createSignal(0);
   const [liveAccuracy, setLiveAccuracy] = createSignal(100);
   const [isFinished, setIsFinished] = createSignal(false);
+  const [scrollOffset, setScrollOffset] = createSignal(0);
 
   const targetText = createMemo(() => getPassageText());
   const totalLength = createMemo(() => {
@@ -62,9 +63,7 @@ export function RaceTypingArena(props: RaceTypingArenaProps): JSXElement {
 
   createEffect(() => {
     targetText();
-    if (containerRef) {
-      containerRef.scrollTop = 0;
-    }
+    setScrollOffset(0);
   });
 
   onMount(() => {
@@ -96,7 +95,7 @@ export function RaceTypingArena(props: RaceTypingArenaProps): JSXElement {
     }
   };
 
-  const adjustAutoScroll = (): void => {
+  const adjustAutoScroll = (isForward: boolean): void => {
     if (!containerRef) return;
     const currentSpan = containerRef.querySelector(
       '[data-current="true"]',
@@ -104,27 +103,15 @@ export function RaceTypingArena(props: RaceTypingArenaProps): JSXElement {
     if (!currentSpan) return;
 
     const currentTop = currentSpan.offsetTop;
-    const paddingTop = 24;
-    const lineHeight = 39;
-    const lineIndex = Math.max(
-      0,
-      Math.floor((currentTop - paddingTop) / lineHeight),
-    );
+    const lineIndex = Math.max(0, Math.floor((currentTop + 10) / 39));
+    const targetOffset = lineIndex >= 2 ? (lineIndex - 1) * 39 : 0;
 
-    // Auto-scroll when nearing the 3rd visible line (lineIndex >= 2)
-    if (lineIndex >= 2) {
-      const targetScroll = (lineIndex - 1) * lineHeight;
-      if (Math.abs(containerRef.scrollTop - targetScroll) > 4) {
-        containerRef.scrollTo({
-          top: targetScroll,
-          behavior: "smooth",
-        });
+    if (isForward) {
+      if (targetOffset > scrollOffset()) {
+        setScrollOffset(targetOffset);
       }
-    } else if (containerRef.scrollTop > 0) {
-      containerRef.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
+    } else if (targetOffset < scrollOffset()) {
+      setScrollOffset(targetOffset);
     }
   };
 
@@ -142,6 +129,7 @@ export function RaceTypingArena(props: RaceTypingArenaProps): JSXElement {
     const val = e.currentTarget.value;
     const prevLen = typed().length;
     const newLen = val.length;
+    const isForward = newLen >= prevLen;
 
     if (newLen > prevLen) {
       setTotalKeys((k) => k + (newLen - prevLen));
@@ -179,7 +167,7 @@ export function RaceTypingArena(props: RaceTypingArenaProps): JSXElement {
     );
     sendProgress(currentProg, calculatedWpm, acc);
 
-    requestAnimationFrame(adjustAutoScroll);
+    requestAnimationFrame(() => adjustAutoScroll(isForward));
 
     if (val.length >= targetText().length && targetText().length > 0) {
       completeTest(calculatedWpm, acc);
@@ -204,9 +192,7 @@ export function RaceTypingArena(props: RaceTypingArenaProps): JSXElement {
     setLiveAccuracy(100);
     setStartTime(Date.now());
     setIsFinished(false);
-    if (containerRef) {
-      containerRef.scrollTo({ top: 0, behavior: "smooth" });
-    }
+    setScrollOffset(0);
     setTimeout(() => {
       inputRef?.focus();
     }, 50);
@@ -362,7 +348,7 @@ export function RaceTypingArena(props: RaceTypingArenaProps): JSXElement {
         <div class="flex flex-col gap-3">
           <div
             ref={(el) => (containerRef = el)}
-            class="relative h-[185px] cursor-text overflow-y-auto scroll-smooth rounded-double border border-sub/20 bg-bg/90 p-6 shadow-inner transition-all select-none hover:border-sub/40"
+            class="relative h-[185px] cursor-text overflow-hidden rounded-double border border-sub/20 bg-bg/90 p-6 shadow-inner transition-all select-none hover:border-sub/40"
             onClick={handleArenaClick}
           >
             <input
@@ -383,7 +369,13 @@ export function RaceTypingArena(props: RaceTypingArenaProps): JSXElement {
               }
             />
 
-            <div class="relative font-mono text-2xl leading-relaxed tracking-wide select-none">
+            <div
+              class="relative font-mono text-2xl leading-relaxed tracking-wide select-none"
+              style={{
+                transform: `translateY(-${scrollOffset()}px)`,
+                transition: "transform 180ms cubic-bezier(0.2, 0, 0, 1)",
+              }}
+            >
               <Index each={targetText().split("")}>
                 {(char, index) => {
                   const isTyped = () => index < typed().length;
