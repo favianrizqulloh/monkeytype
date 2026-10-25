@@ -172,6 +172,12 @@ export type ServerTimerSyncMessage = {
   remainingSeconds: number;
 };
 
+export type ServerNextAttemptReadyMessage = {
+  event: "next_attempt_ready";
+  text: string;
+  author: string;
+};
+
 export type ServerMessage =
   | ServerRoomStateMessage
   | ServerParticipantJoinedMessage
@@ -182,4 +188,5 @@ export type ServerMessage =
   | ServerParticipantFinishedMessage
   | ServerRaceFinishedMessage
   | ServerRaceResetMessage
-  | ServerTimerSyncMessage;
+  | ServerTimerSyncMessage
+  | ServerNextAttemptReadyMessage;

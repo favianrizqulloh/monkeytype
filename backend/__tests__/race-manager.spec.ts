@@ -63,7 +63,8 @@ describe("RaceManager", () => {
     expect(res2?.participant.rank).toBe(2);
 
     // P1 attempts again and gets 95 WPM -> P1 rank becomes 1!
-    manager.startNextAttempt("s1", "p1");
+    const nextAttempt = manager.startNextAttempt("s1", "p1");
+    expect(nextAttempt?.passage.text.length).toBeGreaterThan(10);
     expect(session.participants.get("p1")?.finished).toBe(false);
     expect(session.participants.get("p1")?.bestWpm).toBe(80);
 
@@ -129,5 +130,20 @@ describe("RaceManager", () => {
     });
     expect(s10.durationSeconds).toBe(600);
     expect(s10.text.split(" ").length).toBeGreaterThanOrEqual(450);
+  });
+
+  it("scales quote passages with duration and returns fresh quote on next attempt", () => {
+    const qSession = manager.getOrCreateSession("quote-session", {
+      mode: "quote",
+      durationSeconds: 180,
+    });
+    expect(qSession.text.split(" ").length).toBeGreaterThanOrEqual(180);
+
+    qSession.status = "racing";
+    manager.joinParticipant("quote-session", "p1", "Siswa", false);
+
+    const next1 = manager.startNextAttempt("quote-session", "p1");
+    expect(next1).toBeDefined();
+    expect(next1?.passage.text.length).toBeGreaterThan(50);
   });
 });

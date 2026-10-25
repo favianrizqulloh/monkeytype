@@ -21,7 +21,7 @@ Aplikasi perlombaan mengetik cepat (*typing speed competition*) berbasis web yan
   - **Pilihan Mode**:
     - `time`: Durasi pengetikan fleksibel: 15s, 30s, 60s (1m), 120s (2m), **180s (3m default)**, **300s (5m)**, atau **600s (10m)**.
     - `words`: Jumlah target kata: 10, 25, 50, atau 100 kata.
-    - `quote`: Kutipan inspiratif & edukatif acak.
+    - `quote`: Kutipan inspiratif & edukatif autentik (Ki Hajar Dewantara, B.J. Habibie, Ir. Soekarno, Mohammad Hatta, Buya Hamka, Tan Malaka, R.A. Kartini, Albert Einstein, Nelson Mandela, dll.) yang panjangnya secara cerdas diskalakan mengikuti durasi pilihan guru (15s s/d 10m). Setiap putaran baru (*multi-attempt*) otomatis menyajikan kutipan segar yang berbeda tanpa pengulangan teks yang sama.
     - `custom`: Teks materi atau soal pengetikan bebas yang ditentukan oleh guru.
   - **Toggles Tambahan**:
     - `@ punctuation`: Menyertakan huruf kapital dan tanda baca (titik, koma).

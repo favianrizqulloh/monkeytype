@@ -156,6 +156,14 @@ function handleServerMessage(msg: Record<string, unknown>): void {
       break;
     }
 
+    case "next_attempt_ready": {
+      const text = (msg["text"] as string) ?? "";
+      const author = (msg["author"] as string) ?? "";
+      setPassageText(text);
+      setPassageAuthor(author);
+      break;
+    }
+
     case "race_finished": {
       clearInterval(raceTimerInterval);
       setRaceStatus("finished");

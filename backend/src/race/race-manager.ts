@@ -1,4 +1,8 @@
-import { generatePassage, PassageOptions } from "./passage-generator";
+import {
+  generatePassage,
+  GeneratedPassage,
+  PassageOptions,
+} from "./passage-generator";
 import { RaceParticipant, RaceSession, SerializedSession } from "./race-types";
 
 export class RaceManager {
@@ -170,7 +174,7 @@ export class RaceManager {
   public startNextAttempt(
     sessionId: string,
     participantId: string,
-  ): RaceParticipant | undefined {
+  ): { participant: RaceParticipant; passage: GeneratedPassage } | undefined {
     const session = this.sessions.get(sessionId);
     if (session?.status !== "racing") return undefined;
 
@@ -182,7 +186,17 @@ export class RaceManager {
     participant.accuracy = 100;
     participant.finished = false;
 
-    return participant;
+    const passage = generatePassage({
+      mode: session.mode,
+      modeValue: session.modeValue,
+      durationSeconds: session.durationSeconds,
+      language: session.language,
+      punctuation: session.punctuation,
+      numbers: session.numbers,
+      customText: session.customText,
+    });
+
+    return { participant, passage };
   }
 
   public startRace(

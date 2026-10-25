@@ -21,7 +21,7 @@ A web-based typing speed competition application combining the modern aesthetics
   - **Modes**:
     - `time`: Flexible durations: 15s, 30s, 60s (1m), 120s (2m), **180s (3-minute default)**, **300s (5m)**, or **600s (10m)**.
     - `words`: Word target counts: 10, 25, 50, or 100 words.
-    - `quote`: Random inspirational and educational passages.
+    - `quote`: Authentic, inspirational, and educational quotes from real historical figures (Ki Hajar Dewantara, B.J. Habibie, Soekarno, Hatta, Einstein, Mandela, etc.) intelligently scaled in length to match the teacher's selected duration (15s to 10m). Each new round (*multi-attempt*) dynamically provides a fresh, distinct passage without repetitive text.
     - `custom`: Custom text or exercise paragraph provided by the teacher.
   - **Toggles**:
     - `@ punctuation`: Includes capitalization and punctuation (periods, commas).

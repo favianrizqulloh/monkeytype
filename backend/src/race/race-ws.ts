@@ -149,8 +149,15 @@ export function initRaceWebSocket(server: HttpServer): WebSocketServer {
             const pId = meta?.participantId;
             if (sId === undefined || pId === undefined) return;
 
-            const updated = raceManager.startNextAttempt(sId, pId);
-            if (updated !== undefined) {
+            const res = raceManager.startNextAttempt(sId, pId);
+            if (res !== undefined) {
+              const attemptMsg: ServerMessage = {
+                event: "next_attempt_ready",
+                text: res.passage.text,
+                author: res.passage.author,
+              };
+              ws.send(JSON.stringify(attemptMsg));
+
               const progressMsg: ServerMessage = {
                 event: "progress_update",
                 id: pId,

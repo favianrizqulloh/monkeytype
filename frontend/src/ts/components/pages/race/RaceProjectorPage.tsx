@@ -48,6 +48,13 @@ function formatHeaderDuration(sec: number): string {
   return `${sec} Detik`;
 }
 
+function formatHeaderModeValue(mode: string, val: number): string {
+  if (mode === "time" || mode === "quote") {
+    return formatDurationLabel(val);
+  }
+  return `${val}`;
+}
+
 export function RaceProjectorPage(): JSXElement {
   const [isFullscreen, setIsFullscreen] = createSignal(false);
   const [copiedLink, setCopiedLink] = createSignal(false);
@@ -111,10 +118,10 @@ export function RaceProjectorPage(): JSXElement {
   });
 
   const getEffectiveDuration = (): number => {
-    if (setupMode() === "time") {
+    if (setupMode() === "time" || setupMode() === "quote") {
       return setupModeValue();
     }
-    return 180; // default 3 minutes for words/quote/custom
+    return 180; // default 3 minutes for words/custom
   };
 
   const handleStartSession = (e?: Event): void => {
@@ -287,8 +294,11 @@ export function RaceProjectorPage(): JSXElement {
                           }`}
                           onClick={() => {
                             setSetupMode(item.id);
-                            if (item.id === "time") setSetupModeValue(180);
-                            else if (item.id === "words") setSetupModeValue(25);
+                            if (item.id === "time" || item.id === "quote") {
+                              setSetupModeValue(180);
+                            } else if (item.id === "words") {
+                              setSetupModeValue(25);
+                            }
                           }}
                         >
                           <Fa icon={item.icon} />
@@ -300,7 +310,9 @@ export function RaceProjectorPage(): JSXElement {
 
                   {/* Sub-bar 3: Values by Mode */}
                   <div class="rounded-radius flex items-center gap-1 bg-sub-alt/60 p-1">
-                    <Show when={setupMode() === "time"}>
+                    <Show
+                      when={setupMode() === "time" || setupMode() === "quote"}
+                    >
                       <For each={[15, 30, 60, 120, 180, 300, 600]}>
                         {(sec) => (
                           <button
@@ -335,12 +347,6 @@ export function RaceProjectorPage(): JSXElement {
                           </button>
                         )}
                       </For>
-                    </Show>
-
-                    <Show when={setupMode() === "quote"}>
-                      <span class="px-2 text-xs text-sub italic">
-                        Kutipan Acak
-                      </span>
                     </Show>
 
                     <Show when={setupMode() === "custom"}>
@@ -522,7 +528,9 @@ export function RaceProjectorPage(): JSXElement {
                   LIVE
                 </span>
                 <span class="rounded-full bg-sub/20 px-2.5 py-0.5 text-xs font-semibold text-text uppercase">
-                  {setupMode()}: {setupModeValue()} | {setupLanguage()}
+                  {setupMode()}:{" "}
+                  {formatHeaderModeValue(setupMode(), setupModeValue())} |{" "}
+                  {setupLanguage()}
                 </span>
               </div>
               <p class="text-xs text-sub">

@@ -5,6 +5,7 @@ import { indonesianPassages } from "./indonesian-texts";
 export type PassageOptions = {
   mode?: "time" | "words" | "quote" | "custom";
   modeValue?: number;
+  durationSeconds?: number;
   language?: "indonesian" | "english";
   punctuation?: boolean;
   numbers?: boolean;
@@ -34,8 +35,48 @@ const englishQuotesFallback = [
     source: "Albert Einstein",
   },
   {
+    text: "Learn from yesterday, live for today, hope for tomorrow. The important thing is not to stop questioning.",
+    source: "Albert Einstein",
+  },
+  {
+    text: "Live as if you were to die tomorrow. Learn as if you were to live forever.",
+    source: "Mahatma Gandhi",
+  },
+  {
+    text: "Education is the most powerful weapon which you can use to change the world.",
+    source: "Nelson Mandela",
+  },
+  {
+    text: "Nothing in life is to be feared, it is only to be understood. Now is the time to understand more, so that we may fear less.",
+    source: "Marie Curie",
+  },
+  {
+    text: "Whatever you are, be a good one.",
+    source: "Abraham Lincoln",
+  },
+  {
+    text: "We are what we repeatedly do. Excellence, then, is not an act, but a habit.",
+    source: "Aristotle",
+  },
+  {
+    text: "The only limit to our realization of tomorrow will be our doubts of today.",
+    source: "Franklin D. Roosevelt",
+  },
+  {
+    text: "If I have seen further than others, it is by standing upon the shoulders of giants.",
+    source: "Isaac Newton",
+  },
+  {
+    text: "An investment in knowledge pays the best interest.",
+    source: "Benjamin Franklin",
+  },
+  {
     text: "Life is what happens when you are busy making other plans.",
     source: "John Lennon",
+  },
+  {
+    text: "Stay hungry, stay foolish.",
+    source: "Steve Jobs",
   },
 ];
 
@@ -283,6 +324,36 @@ function loadQuotes(
         quotes?: { text: string; source: string }[];
       };
       if (Array.isArray(parsed.quotes) && parsed.quotes.length > 0) {
+        if (language === "indonesian") {
+          const bannedWords = [
+            "mulas",
+            "buang air",
+            "tisue",
+            "patah hati",
+            "patah-hati",
+            "selingkuh",
+            "pacar",
+            "jodoh",
+          ];
+          const bannedSources = [
+            "Raditya Dika",
+            "Boy Candra",
+            "Fiersa Besari",
+            "Sujiwo Tejo",
+            "Sujiwo Tedjo",
+          ];
+          const filtered = parsed.quotes.filter((q) => {
+            const textLower = q.text.toLowerCase();
+            if (bannedSources.some((b) => q.source.includes(b))) return false;
+            if (bannedWords.some((b) => textLower.includes(b))) return false;
+            return true;
+          });
+          const curated = indonesianPassages.map((p) => ({
+            text: p.text,
+            source: p.author,
+          }));
+          return [...curated, ...filtered];
+        }
         return parsed.quotes;
       }
     }
@@ -300,6 +371,7 @@ export function generatePassage(
   const {
     mode = "time",
     modeValue,
+    durationSeconds,
     language = "indonesian",
     punctuation = false,
     numbers = false,
@@ -321,15 +393,51 @@ export function generatePassage(
     };
   }
 
-  // Mode 2: Quote
+  // Mode 2: Quote (Scales words with duration)
   if (mode === "quote") {
     const quotes = loadQuotes(language);
-    const randomIndex = Math.floor(Math.random() * quotes.length);
-    const quote = quotes[randomIndex] ??
-      quotes[0] ?? { text: "Belajar mengetik.", source: "Typing" };
+    const sec =
+      durationSeconds !== undefined && durationSeconds > 0
+        ? durationSeconds
+        : modeValue !== undefined && modeValue > 0
+          ? modeValue
+          : 180;
+
+    let targetWords = 220;
+    if (sec <= 15) targetWords = 25;
+    else if (sec <= 30) targetWords = 45;
+    else if (sec <= 60) targetWords = 80;
+    else if (sec <= 120) targetWords = 150;
+    else if (sec <= 180) targetWords = 220;
+    else if (sec <= 300) targetWords = 380;
+    else targetWords = 750;
+
+    const shuffled = [...quotes].sort(() => Math.random() - 0.5);
+    const selectedQuotes: { text: string; source: string }[] = [];
+    let currentWordCount = 0;
+
+    for (const q of shuffled) {
+      const qWords = q.text.trim().split(/\s+/).length;
+      selectedQuotes.push(q);
+      currentWordCount += qWords;
+      if (currentWordCount >= targetWords) {
+        break;
+      }
+    }
+
+    const firstQuote = quotes[0];
+    if (selectedQuotes.length === 0 && firstQuote !== undefined) {
+      selectedQuotes.push(firstQuote);
+    }
+
+    const combinedText = selectedQuotes.map((q) => q.text.trim()).join(" ");
+    const authors = Array.from(
+      new Set(selectedQuotes.map((q) => q.source)),
+    ).join(", ");
+
     return {
-      text: quote.text,
-      author: quote.source,
+      text: combinedText,
+      author: authors,
     };
   }
 
